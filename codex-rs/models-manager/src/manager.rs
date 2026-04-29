@@ -335,9 +335,11 @@ impl OpenAiModelsManager {
                 .iter()
                 .position(|existing| existing.slug == model.slug)
             {
-                existing_models[existing_index] = model;
+                let local_model = existing_models.get(existing_index);
+                existing_models[existing_index] =
+                    model_info::apply_local_prompt_overrides(model, local_model);
             } else {
-                existing_models.push(model);
+                existing_models.push(model_info::apply_local_prompt_overrides(model, None));
             }
         }
         *self.remote_models.write().await = existing_models;
