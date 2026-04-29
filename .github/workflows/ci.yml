@@ -26,6 +26,13 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
 
+      - name: Install Linux Rust build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            libcap-dev \
+            pkg-config
+
       - name: Build Rust CLI
         working-directory: codex-rs
         run: cargo build -p codex-cli --bin codex
