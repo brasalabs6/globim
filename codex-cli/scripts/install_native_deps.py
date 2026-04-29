@@ -20,7 +20,7 @@ from urllib.request import urlopen
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 CODEX_CLI_ROOT = SCRIPT_DIR.parent
-DEFAULT_WORKFLOW_URL = "https://github.com/openai/codex/actions/runs/17952349351"  # rust-v0.40.0
+DEFAULT_WORKFLOW_URL = "https://github.com/brasalabs6/globim/actions"  # Override with a rust-release run URL for releases.
 VENDOR_DIR_NAME = "vendor"
 RG_MANIFEST = CODEX_CLI_ROOT / "bin" / "rg"
 BINARY_TARGETS = (
@@ -267,7 +267,7 @@ def _download_artifacts(workflow_id: str, dest_dir: Path) -> None:
         "--dir",
         str(dest_dir),
         "--repo",
-        "openai/codex",
+        os.environ.get("GITHUB_REPOSITORY", "brasalabs6/globim"),
         workflow_id,
     ]
     subprocess.check_call(cmd)

@@ -39,7 +39,8 @@ use wiremock::MockServer;
 
 const LOCAL_FRIENDLY_TEMPLATE: &str =
     "You optimize for team morale and being a supportive teammate as much as code quality.";
-const LOCAL_PRAGMATIC_TEMPLATE: &str = "You are a deeply pragmatic, effective software engineer.";
+const LOCAL_PRAGMATIC_TEMPLATE: &str =
+    "You are Globim, a terminal-dwelling coding agent who escaped from the Globim world";
 
 fn read_only_text_turn(
     test: &TestCodex,
@@ -290,7 +291,7 @@ async fn default_personality_is_pragmatic_without_config_toml() -> anyhow::Resul
     let instructions_text = request.instructions_text();
     assert!(
         instructions_text.contains(LOCAL_PRAGMATIC_TEMPLATE),
-        "expected default friendly template, got: {instructions_text:?}"
+        "expected default Globim template, got: {instructions_text:?}"
     );
 
     Ok(())

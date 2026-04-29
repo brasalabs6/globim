@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Unified entry point for the Codex CLI.
+// Unified entry point for the Globim CLI.
 
 import { spawn } from "node:child_process";
 import { existsSync } from "fs";
@@ -13,12 +13,12 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const PLATFORM_PACKAGE_BY_TARGET = {
-  "x86_64-unknown-linux-musl": "@openai/codex-linux-x64",
-  "aarch64-unknown-linux-musl": "@openai/codex-linux-arm64",
-  "x86_64-apple-darwin": "@openai/codex-darwin-x64",
-  "aarch64-apple-darwin": "@openai/codex-darwin-arm64",
-  "x86_64-pc-windows-msvc": "@openai/codex-win32-x64",
-  "aarch64-pc-windows-msvc": "@openai/codex-win32-arm64",
+  "x86_64-unknown-linux-musl": "globim-linux-x64",
+  "aarch64-unknown-linux-musl": "globim-linux-arm64",
+  "x86_64-apple-darwin": "globim-darwin-x64",
+  "aarch64-apple-darwin": "globim-darwin-arm64",
+  "x86_64-pc-windows-msvc": "globim-win32-x64",
+  "aarch64-pc-windows-msvc": "globim-win32-arm64",
 };
 
 const { platform, arch } = process;
@@ -75,6 +75,8 @@ if (!platformPackage) {
   throw new Error(`Unsupported target triple: ${targetTriple}`);
 }
 
+// Keep the internal Rust binary named `codex` so Globim can reuse upstream
+// release artifacts and minimize long-term fork drift.
 const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
 const localVendorRoot = path.join(__dirname, "..", "vendor");
 const localBinaryPath = path.join(
@@ -95,10 +97,10 @@ try {
     const packageManager = detectPackageManager();
     const updateCommand =
       packageManager === "bun"
-        ? "bun install -g @openai/codex@latest"
-        : "npm install -g @openai/codex@latest";
+        ? "bun install -g globim@latest"
+        : "npm install -g globim@latest";
     throw new Error(
-      `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+      `Missing optional dependency ${platformPackage}. Reinstall Globim: ${updateCommand}`,
     );
   }
 }
@@ -107,10 +109,10 @@ if (!vendorRoot) {
   const packageManager = detectPackageManager();
   const updateCommand =
     packageManager === "bun"
-      ? "bun install -g @openai/codex@latest"
-      : "npm install -g @openai/codex@latest";
+      ? "bun install -g globim@latest"
+      : "npm install -g globim@latest";
   throw new Error(
-    `Missing optional dependency ${platformPackage}. Reinstall Codex: ${updateCommand}`,
+    `Missing optional dependency ${platformPackage}. Reinstall Globim: ${updateCommand}`,
   );
 }
 
@@ -134,7 +136,7 @@ function getUpdatedPath(newDirs) {
 }
 
 /**
- * Use heuristics to detect the package manager that was used to install Codex
+ * Use heuristics to detect the package manager that was used to install Globim
  * in order to give the user a hint about how to update it.
  */
 function detectPackageManager() {
@@ -168,8 +170,8 @@ const updatedPath = getUpdatedPath(additionalDirs);
 const env = { ...process.env, PATH: updatedPath };
 const packageManagerEnvVar =
   detectPackageManager() === "bun"
-    ? "CODEX_MANAGED_BY_BUN"
-    : "CODEX_MANAGED_BY_NPM";
+    ? "GLOBIM_MANAGED_BY_BUN"
+    : "GLOBIM_MANAGED_BY_NPM";
 env[packageManagerEnvVar] = "1";
 
 const child = spawn(binaryPath, process.argv.slice(2), {
