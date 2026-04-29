@@ -567,10 +567,10 @@ handle_conflicting_install() {
       uninstall_cmd="brew uninstall --cask codex"
       ;;
     bun)
-      uninstall_cmd="bun remove -g @openai/codex"
+      uninstall_cmd="bun remove -g globim"
       ;;
     *)
-      uninstall_cmd="npm uninstall -g @openai/codex"
+      uninstall_cmd="npm uninstall -g globim"
       ;;
   esac
 
@@ -692,18 +692,18 @@ else
 fi
 
 resolved_version="$(resolve_version)"
-asset="codex-npm-$npm_tag-$resolved_version.tgz"
+asset="globim-npm-$npm_tag-$resolved_version.tgz"
 download_url="$(release_url_for_asset "$asset" "$resolved_version")"
 release_name="$resolved_version-$vendor_target"
 release_dir="$RELEASES_DIR/$release_name"
 current_version="$(current_installed_version)"
 
 if [ -n "$current_version" ] && [ "$current_version" != "$resolved_version" ]; then
-  step "Updating Codex CLI from $current_version to $resolved_version"
+  step "Updating Globim CLI from $current_version to $resolved_version"
 elif [ -n "$current_version" ]; then
-  step "Updating Codex CLI"
+  step "Updating Globim CLI"
 else
-  step "Installing Codex CLI"
+  step "Installing Globim CLI"
 fi
 step "Detected platform: $platform_label"
 step "Resolved version: $resolved_version"
@@ -730,7 +730,7 @@ if ! release_dir_is_complete "$release_dir" "$resolved_version" "$vendor_target"
   archive_path="$tmp_dir/$asset"
   extract_dir="$tmp_dir/extract"
 
-  step "Downloading Codex CLI"
+  step "Downloading Globim CLI"
   expected_digest="$(release_asset_digest "$asset" "$resolved_version")"
   download_file "$download_url" "$archive_path"
   verify_archive_digest "$archive_path" "$expected_digest"
@@ -764,5 +764,5 @@ case "$path_action" in
     ;;
 esac
 
-printf 'Codex CLI %s installed successfully.\n' "$resolved_version"
+printf 'Globim CLI %s installed successfully.\n' "$resolved_version"
 maybe_launch_codex_now

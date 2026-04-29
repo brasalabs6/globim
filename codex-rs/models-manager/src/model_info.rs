@@ -14,10 +14,11 @@ use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
 pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const DEFAULT_PERSONALITY_HEADER: &str = "You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
+const DEFAULT_PERSONALITY_HEADER: &str = "You are Globim, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
 const LOCAL_FRIENDLY_TEMPLATE: &str =
     "You optimize for team morale and being a supportive teammate as much as code quality.";
-const LOCAL_PRAGMATIC_TEMPLATE: &str = "You are a deeply pragmatic, effective software engineer.";
+const LOCAL_PRAGMATIC_TEMPLATE: &str =
+    include_str!("../../core/templates/personalities/gpt-5.2-codex_pragmatic.md");
 const PERSONALITY_PLACEHOLDER: &str = "{{ personality }}";
 
 pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig) -> ModelInfo {

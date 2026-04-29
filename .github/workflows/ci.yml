@@ -2,12 +2,12 @@ name: ci
 
 on:
   pull_request: {}
-  push: { branches: [main] }
+  push: { branches: [globimling] }
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
@@ -22,6 +22,16 @@ jobs:
 
       - name: Verify Bazel clippy flags match Cargo workspace lints
         run: python3 .github/scripts/verify_bazel_clippy_lints.py
+
+      - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
+
+      - name: Build Rust CLI
+        working-directory: codex-rs
+        run: cargo build -p codex-cli --bin codex
+
+      - name: Test prompt personality path
+        working-directory: codex-rs
+        run: "cargo test -p codex-core personality::"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
@@ -45,20 +55,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # Use a rust-release version that includes all native binaries.
-          CODEX_VERSION=0.115.0
+          GLOBIM_VERSION=0.125.1
           OUTPUT_DIR="${RUNNER_TEMP}"
-          python3 ./scripts/stage_npm_packages.py \
-            --release-version "$CODEX_VERSION" \
-            --package codex \
-            --output-dir "$OUTPUT_DIR"
-          PACK_OUTPUT="${OUTPUT_DIR}/codex-npm-${CODEX_VERSION}.tgz"
+          python3 ./codex-cli/scripts/build_npm_package.py \
+            --release-version "$GLOBIM_VERSION" \
+            --package globim \
+            --staging-dir "${RUNNER_TEMP}/globim-npm-stage" \
+            --pack-output "${OUTPUT_DIR}/globim-npm-${GLOBIM_VERSION}.tgz"
+          PACK_OUTPUT="${OUTPUT_DIR}/globim-npm-${GLOBIM_VERSION}.tgz"
           echo "pack_output=$PACK_OUTPUT" >> "$GITHUB_OUTPUT"
 
       - name: Upload staged npm package artifact
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
-          name: codex-npm-staging
+          name: globim-npm-staging
           path: ${{ steps.stage_npm_package.outputs.pack_output }}
 
       - name: Ensure root README.md contains only ASCII and certain Unicode code points
