@@ -267,7 +267,7 @@ jobs:
           ./scripts/stage_npm_packages.py \
             --release-version "$RELEASE_VERSION" \
             --workflow-url "$WORKFLOW_URL" \
-            --package globim
+            --package goblins
 
       - name: Generate release notes
         id: release_notes
@@ -308,7 +308,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
-            echo "NPM_TOKEN is required to publish Globim packages to npm."
+            echo "NPM_TOKEN is required to publish Goblins packages to npm."
             exit 1
           fi
 
@@ -322,10 +322,10 @@ jobs:
           set -euo pipefail
           mkdir -p dist/npm
           patterns=(
-            "globim-npm-${RELEASE_VERSION}.tgz"
-            "globim-npm-linux-*-${RELEASE_VERSION}.tgz"
-            "globim-npm-darwin-*-${RELEASE_VERSION}.tgz"
-            "globim-npm-win32-*-${RELEASE_VERSION}.tgz"
+            "goblins-npm-${RELEASE_VERSION}.tgz"
+            "goblins-npm-linux-*-${RELEASE_VERSION}.tgz"
+            "goblins-npm-darwin-*-${RELEASE_VERSION}.tgz"
+            "goblins-npm-win32-*-${RELEASE_VERSION}.tgz"
           )
           for pattern in "${patterns[@]}"; do
             gh release download "$RELEASE_TAG" \
@@ -358,12 +358,12 @@ jobs:
             filename="$(basename "$tarball")"
             tag=""
             case "$filename" in
-              globim-npm-linux-*-"${VERSION}".tgz|globim-npm-darwin-*-"${VERSION}".tgz|globim-npm-win32-*-"${VERSION}".tgz)
-                platform="${filename#globim-npm-}"
+              goblins-npm-linux-*-"${VERSION}".tgz|goblins-npm-darwin-*-"${VERSION}".tgz|goblins-npm-win32-*-"${VERSION}".tgz)
+                platform="${filename#goblins-npm-}"
                 platform="${platform%-${VERSION}.tgz}"
                 tag="${prefix}${platform}"
                 ;;
-              globim-npm-"${VERSION}".tgz)
+              goblins-npm-"${VERSION}".tgz)
                 tag="${NPM_TAG}"
                 ;;
               *)

@@ -132,8 +132,8 @@ def run_command(cmd: list[str]) -> None:
 
 def tarball_name_for_package(package: str, version: str) -> str:
     if package in CODEX_PLATFORM_PACKAGES:
-        platform = package.removeprefix("globim-")
-        return f"globim-npm-{platform}-{version}.tgz"
+        platform = package.removeprefix("goblins-")
+        return f"goblins-npm-{platform}-{version}.tgz"
     return f"{package}-npm-{version}.tgz"
 
 
