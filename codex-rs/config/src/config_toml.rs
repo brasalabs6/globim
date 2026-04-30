@@ -200,10 +200,11 @@ pub struct ConfigToml {
     #[serde(default, deserialize_with = "deserialize_model_providers")]
     pub model_providers: HashMap<String, ModelProviderInfo>,
 
-    /// Maximum number of bytes to include from an AGENTS.md project doc file.
+    /// Maximum number of bytes to include from project doc files.
     pub project_doc_max_bytes: Option<usize>,
 
     /// Ordered list of fallback filenames to look for when AGENTS.md is missing.
+    /// GLOBIM.md is loaded automatically and does not need to be listed here.
     pub project_doc_fallback_filenames: Option<Vec<String>>,
 
     /// Token budget applied when storing tool/function outputs in the context manager.

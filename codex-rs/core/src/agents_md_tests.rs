@@ -129,6 +129,49 @@ async fn doc_smaller_than_limit_is_returned() {
     );
 }
 
+#[tokio::test]
+async fn globim_md_is_loaded_without_agents_md() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    fs::write(tmp.path().join(GLOBIM_MD_FILENAME), "globim doc").unwrap();
+
+    let cfg = make_config(&tmp, /*limit*/ 4096, /*instructions*/ None).await;
+    let res = get_user_instructions(&cfg).await.expect("doc expected");
+
+    assert_eq!(res, "globim doc");
+
+    let discovery = agents_md_paths(&cfg).await.expect("discover paths");
+    assert_eq!(discovery.len(), 1);
+    assert_eq!(
+        discovery[0].file_name().unwrap().to_string_lossy(),
+        GLOBIM_MD_FILENAME
+    );
+}
+
+#[tokio::test]
+async fn globim_md_is_appended_to_agents_md() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    fs::write(tmp.path().join(DEFAULT_AGENTS_MD_FILENAME), "agents doc").unwrap();
+    fs::write(tmp.path().join(GLOBIM_MD_FILENAME), "globim doc").unwrap();
+
+    let cfg = make_config(&tmp, /*limit*/ 4096, /*instructions*/ None).await;
+    let res = get_user_instructions(&cfg).await.expect("doc expected");
+
+    assert_eq!(res, "agents doc\n\nglobim doc");
+
+    let discovery = agents_md_paths(&cfg).await.expect("discover paths");
+    let filenames: Vec<String> = discovery
+        .iter()
+        .map(|path| path.file_name().unwrap().to_string_lossy().to_string())
+        .collect();
+    assert_eq!(
+        filenames,
+        vec![
+            DEFAULT_AGENTS_MD_FILENAME.to_string(),
+            GLOBIM_MD_FILENAME.to_string(),
+        ]
+    );
+}
+
 /// Oversize file is truncated to `project_doc_max_bytes`.
 #[tokio::test]
 async fn doc_larger_than_limit_is_truncated() {
@@ -294,6 +337,34 @@ async fn concatenates_root_and_cwd_docs() {
 }
 
 #[tokio::test]
+async fn concatenates_root_and_cwd_globim_docs_after_primary_docs() {
+    let repo = tempfile::tempdir().expect("tempdir");
+
+    std::fs::write(
+        repo.path().join(".git"),
+        "gitdir: /path/to/actual/git/dir\n",
+    )
+    .unwrap();
+
+    fs::write(repo.path().join(DEFAULT_AGENTS_MD_FILENAME), "root agents").unwrap();
+    fs::write(repo.path().join(GLOBIM_MD_FILENAME), "root globim").unwrap();
+
+    let nested = repo.path().join("workspace/crate_a");
+    std::fs::create_dir_all(&nested).unwrap();
+    fs::write(nested.join(DEFAULT_AGENTS_MD_FILENAME), "crate agents").unwrap();
+    fs::write(nested.join(GLOBIM_MD_FILENAME), "crate globim").unwrap();
+
+    let mut cfg = make_config(&repo, /*limit*/ 4096, /*instructions*/ None).await;
+    cfg.cwd = nested.abs();
+
+    let res = get_user_instructions(&cfg).await.expect("doc expected");
+    assert_eq!(
+        res,
+        "root agents\n\nroot globim\n\ncrate agents\n\ncrate globim"
+    );
+}
+
+#[tokio::test]
 async fn project_root_markers_are_honored_for_agents_discovery() {
     let root = tempfile::tempdir().expect("tempdir");
     fs::write(root.path().join(".codex-root"), "").unwrap();
@@ -348,6 +419,35 @@ async fn instruction_sources_include_global_before_agents_md_docs() {
     .expect("absolute project doc path");
 
     assert_eq!(sources, vec![global_agents, project_agents]);
+}
+
+#[test]
+fn global_instructions_include_globim_md_after_agents_md() {
+    let codex_home = tempfile::tempdir().expect("tempdir");
+    fs::write(
+        codex_home.path().join(DEFAULT_AGENTS_MD_FILENAME),
+        "global agents",
+    )
+    .unwrap();
+    fs::write(codex_home.path().join(GLOBIM_MD_FILENAME), "global globim").unwrap();
+
+    let loaded = AgentsMdManager::load_global_instructions(Some(&codex_home.abs()))
+        .expect("global instructions expected");
+
+    assert_eq!(loaded.contents, "global agents\n\nglobal globim");
+
+    let filenames: Vec<String> = loaded
+        .paths
+        .iter()
+        .map(|path| path.file_name().unwrap().to_string_lossy().to_string())
+        .collect();
+    assert_eq!(
+        filenames,
+        vec![
+            DEFAULT_AGENTS_MD_FILENAME.to_string(),
+            GLOBIM_MD_FILENAME.to_string(),
+        ]
+    );
 }
 
 /// AGENTS.override.md is preferred over AGENTS.md when both are present.
@@ -423,6 +523,33 @@ async fn agents_md_preferred_over_fallbacks() {
             .unwrap()
             .to_string_lossy()
             .eq(DEFAULT_AGENTS_MD_FILENAME)
+    );
+}
+
+#[tokio::test]
+async fn configured_globim_md_fallback_is_not_duplicated() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    fs::write(tmp.path().join(GLOBIM_MD_FILENAME), "globim").unwrap();
+
+    let cfg = make_config_with_fallback(
+        &tmp,
+        /*limit*/ 4096,
+        /*instructions*/ None,
+        &[GLOBIM_MD_FILENAME],
+    )
+    .await;
+
+    let res = get_user_instructions(&cfg)
+        .await
+        .expect("GLOBIM.md should be included");
+
+    assert_eq!(res, "globim");
+
+    let discovery = agents_md_paths(&cfg).await.expect("discover paths");
+    assert_eq!(discovery.len(), 1);
+    assert_eq!(
+        discovery[0].file_name().unwrap().to_string_lossy(),
+        GLOBIM_MD_FILENAME
     );
 }
 
