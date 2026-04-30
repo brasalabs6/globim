@@ -227,15 +227,7 @@ resolve_version() {
 }
 
 pick_profile() {
-  # Use the same shell-specific split Homebrew documents because there is no
-  # universal startup file across macOS/Linux login and interactive shells.
   case "$os:${SHELL:-}" in
-    darwin:*/zsh)
-      printf '%s\n' "$HOME/.zprofile"
-      ;;
-    darwin:*/bash)
-      printf '%s\n' "$HOME/.bash_profile"
-      ;;
     linux:*/zsh)
       printf '%s\n' "$HOME/.zshrc"
       ;;
@@ -361,14 +353,6 @@ mkdir_lock_is_stale() {
 acquire_install_lock() {
   mkdir -p "$STANDALONE_ROOT"
 
-  if [ "$os" = "darwin" ] && command -v lockf >/dev/null 2>&1; then
-    : >>"$LOCK_FILE"
-    exec 9<>"$LOCK_FILE"
-    lockf 9
-    lock_kind="lockf"
-    return
-  fi
-
   if command -v flock >/dev/null 2>&1; then
     exec 9>"$LOCK_FILE"
     flock 9
@@ -393,7 +377,7 @@ acquire_install_lock() {
 release_install_lock() {
   if [ "$lock_kind" = "mkdir" ]; then
     rm -rf "$LOCK_DIR" 2>/dev/null || true
-  elif [ "$lock_kind" = "flock" ] || [ "$lock_kind" = "lockf" ]; then
+  elif [ "$lock_kind" = "flock" ]; then
     exec 9>&- 2>/dev/null || true
   fi
   lock_kind=""
@@ -460,15 +444,6 @@ classify_existing_codex() {
   if [ -z "$existing_path" ] || [ "$existing_path" = "$BIN_PATH" ]; then
     return 1
   fi
-
-  case "$existing_path" in
-    /opt/homebrew/* | /usr/local/*)
-      if [ "$os" = "darwin" ]; then
-        printf 'brew\n'
-        return 0
-      fi
-      ;;
-  esac
 
   if [ -f "$existing_path" ] && grep -F "#!/usr/bin/env node" "$existing_path" >/dev/null 2>&1; then
     case "$existing_path" in
@@ -563,9 +538,6 @@ handle_conflicting_install() {
   fi
 
   case "$conflict_manager" in
-    brew)
-      uninstall_cmd="brew uninstall goblins"
-      ;;
     bun)
       uninstall_cmd="bun remove -g @brasalabs/goblins"
       ;;
@@ -639,13 +611,14 @@ require_command tar
 
 case "$(uname -s)" in
   Darwin)
-    os="darwin"
+    echo "install.sh currently supports Linux only. Use npm install -g @brasalabs/goblins for npm-managed installs." >&2
+    exit 1
     ;;
   Linux)
     os="linux"
     ;;
   *)
-    echo "install.sh supports macOS and Linux. Use install.ps1 on Windows." >&2
+    echo "install.sh supports Linux. Use install.ps1 on Windows." >&2
     exit 1
     ;;
 esac
@@ -663,32 +636,14 @@ case "$(uname -m)" in
     ;;
 esac
 
-if [ "$os" = "darwin" ] && [ "$arch" = "x86_64" ]; then
-  if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = "1" ]; then
-    arch="aarch64"
-  fi
-fi
-
-if [ "$os" = "darwin" ]; then
-  if [ "$arch" = "aarch64" ]; then
-    npm_tag="darwin-arm64"
-    vendor_target="aarch64-apple-darwin"
-    platform_label="macOS (Apple Silicon)"
-  else
-    npm_tag="darwin-x64"
-    vendor_target="x86_64-apple-darwin"
-    platform_label="macOS (Intel)"
-  fi
+if [ "$arch" = "aarch64" ]; then
+  npm_tag="linux-arm64"
+  vendor_target="aarch64-unknown-linux-musl"
+  platform_label="Linux (ARM64)"
 else
-  if [ "$arch" = "aarch64" ]; then
-    npm_tag="linux-arm64"
-    vendor_target="aarch64-unknown-linux-musl"
-    platform_label="Linux (ARM64)"
-  else
-    npm_tag="linux-x64"
-    vendor_target="x86_64-unknown-linux-musl"
-    platform_label="Linux (x64)"
-  fi
+  npm_tag="linux-x64"
+  vendor_target="x86_64-unknown-linux-musl"
+  platform_label="Linux (x64)"
 fi
 
 resolved_version="$(resolve_version)"

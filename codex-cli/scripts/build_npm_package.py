@@ -32,20 +32,6 @@ CODEX_PLATFORM_PACKAGES: dict[str, dict[str, str]] = {
         "os": "linux",
         "cpu": "arm64",
     },
-    "@brasalabs/goblins-darwin-x64": {
-        "npm_name": "@brasalabs/goblins-darwin-x64",
-        "npm_tag": "darwin-x64",
-        "target_triple": "x86_64-apple-darwin",
-        "os": "darwin",
-        "cpu": "x64",
-    },
-    "@brasalabs/goblins-darwin-arm64": {
-        "npm_name": "@brasalabs/goblins-darwin-arm64",
-        "npm_tag": "darwin-arm64",
-        "target_triple": "aarch64-apple-darwin",
-        "os": "darwin",
-        "cpu": "arm64",
-    },
     "@brasalabs/goblins-win32-x64": {
         "npm_name": "@brasalabs/goblins-win32-x64",
         "npm_tag": "win32-x64",
@@ -70,8 +56,6 @@ PACKAGE_NATIVE_COMPONENTS: dict[str, list[str]] = {
     CODEX_NPM_NAME: [],
     "@brasalabs/goblins-linux-x64": ["codex", "rg"],
     "@brasalabs/goblins-linux-arm64": ["codex", "rg"],
-    "@brasalabs/goblins-darwin-x64": ["codex", "rg"],
-    "@brasalabs/goblins-darwin-arm64": ["codex", "rg"],
     "@brasalabs/goblins-win32-x64": [
         "codex",
         "rg",

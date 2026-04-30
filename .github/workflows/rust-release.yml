@@ -54,10 +54,6 @@ jobs:
             target: x86_64-unknown-linux-musl
           - runner: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-          - runner: macos-13
-            target: x86_64-apple-darwin
-          - runner: macos-15
-            target: aarch64-apple-darwin
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -69,11 +65,6 @@ jobs:
           sudo apt-get update -y
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             libcap-dev libubsan1 pkg-config zstd
-
-      - name: Install macOS build dependencies
-        if: ${{ runner.os == 'macOS' }}
-        shell: bash
-        run: brew install zstd
 
       - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
         with:
@@ -324,7 +315,6 @@ jobs:
           patterns=(
             "goblins-npm-${RELEASE_VERSION}.tgz"
             "goblins-npm-linux-*-${RELEASE_VERSION}.tgz"
-            "goblins-npm-darwin-*-${RELEASE_VERSION}.tgz"
             "goblins-npm-win32-*-${RELEASE_VERSION}.tgz"
           )
           for pattern in "${patterns[@]}"; do
@@ -358,7 +348,7 @@ jobs:
             filename="$(basename "$tarball")"
             tag=""
             case "$filename" in
-              goblins-npm-linux-*-"${VERSION}".tgz|goblins-npm-darwin-*-"${VERSION}".tgz|goblins-npm-win32-*-"${VERSION}".tgz)
+              goblins-npm-linux-*-"${VERSION}".tgz|goblins-npm-win32-*-"${VERSION}".tgz)
                 platform="${filename#goblins-npm-}"
                 platform="${platform%-${VERSION}.tgz}"
                 tag="${prefix}${platform}"
