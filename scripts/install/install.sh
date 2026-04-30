@@ -567,10 +567,10 @@ handle_conflicting_install() {
       uninstall_cmd="brew uninstall goblins"
       ;;
     bun)
-      uninstall_cmd="bun remove -g goblins"
+      uninstall_cmd="bun remove -g @brasalabs/goblins"
       ;;
     *)
-      uninstall_cmd="npm uninstall -g goblins"
+      uninstall_cmd="npm uninstall -g @brasalabs/goblins"
       ;;
   esac
 

@@ -267,7 +267,7 @@ jobs:
           ./scripts/stage_npm_packages.py \
             --release-version "$RELEASE_VERSION" \
             --workflow-url "$WORKFLOW_URL" \
-            --package goblins
+            --package @brasalabs/goblins
 
       - name: Generate release notes
         id: release_notes

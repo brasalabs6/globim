@@ -67,7 +67,7 @@ jobs:
           OUTPUT_DIR="${RUNNER_TEMP}"
           python3 ./codex-cli/scripts/build_npm_package.py \
             --release-version "$GOBLINS_VERSION" \
-            --package goblins \
+            --package @brasalabs/goblins \
             --staging-dir "${RUNNER_TEMP}/goblins-npm-stage" \
             --pack-output "${OUTPUT_DIR}/goblins-npm-${GOBLINS_VERSION}.tgz"
           PACK_OUTPUT="${OUTPUT_DIR}/goblins-npm-${GOBLINS_VERSION}.tgz"

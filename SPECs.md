@@ -13,10 +13,10 @@ Goblins is a public community fork of OpenAI Codex CLI. Version 1 of the fork is
 
 ## Package Contract
 
-- The public npm package name is `goblins`.
+- The public npm package name is `@brasalabs/goblins`.
 - The public CLI binary name is `goblin`.
 - The `goblins` CLI binary name is reserved for a future multi-agent interface.
-- Native optional packages are named `goblins-linux-x64`, `goblins-linux-arm64`, `goblins-darwin-x64`, `goblins-darwin-arm64`, `goblins-win32-x64`, and `goblins-win32-arm64`.
+- Native optional packages are named `@brasalabs/goblins-linux-x64`, `@brasalabs/goblins-linux-arm64`, `@brasalabs/goblins-darwin-x64`, `@brasalabs/goblins-darwin-arm64`, `@brasalabs/goblins-win32-x64`, and `@brasalabs/goblins-win32-arm64`.
 - The Rust executable may remain internally named `codex` when that reduces release and merge risk.
 
 ## Prompt Contract
@@ -29,5 +29,5 @@ Goblins is a public community fork of OpenAI Codex CLI. Version 1 of the fork is
 
 - Release tags use `rust-v*.*.*`.
 - npm publication uses the GitHub Actions secret `NPM_TOKEN`.
-- The release pipeline must stage the `goblins` npm package plus all native optional packages before publication.
+- The release pipeline must stage the `@brasalabs/goblins` npm package plus all native optional packages before publication.
 - README and npm metadata must clearly state that Goblins is a community fork, not an official OpenAI project.
