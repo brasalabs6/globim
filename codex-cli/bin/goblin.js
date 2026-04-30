@@ -15,8 +15,6 @@ const require = createRequire(import.meta.url);
 const PLATFORM_PACKAGE_BY_TARGET = {
   "x86_64-unknown-linux-musl": "@brasalabs/goblins-linux-x64",
   "aarch64-unknown-linux-musl": "@brasalabs/goblins-linux-arm64",
-  "x86_64-apple-darwin": "@brasalabs/goblins-darwin-x64",
-  "aarch64-apple-darwin": "@brasalabs/goblins-darwin-arm64",
   "x86_64-pc-windows-msvc": "@brasalabs/goblins-win32-x64",
   "aarch64-pc-windows-msvc": "@brasalabs/goblins-win32-arm64",
 };
@@ -33,18 +31,6 @@ switch (platform) {
         break;
       case "arm64":
         targetTriple = "aarch64-unknown-linux-musl";
-        break;
-      default:
-        break;
-    }
-    break;
-  case "darwin":
-    switch (arch) {
-      case "x64":
-        targetTriple = "x86_64-apple-darwin";
-        break;
-      case "arm64":
-        targetTriple = "aarch64-apple-darwin";
         break;
       default:
         break;
