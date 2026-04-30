@@ -373,13 +373,18 @@ async fn refresh_available_models_sorts_by_priority() {
 
 #[tokio::test]
 async fn refresh_available_models_preserves_goblins_prompt_fields() {
-    let mut remote = remote_model("gpt-5.5", "Remote GPT-5.5", /*priority*/ 0);
-    remote.base_instructions = "You are Codex, an upstream coding agent.".to_string();
-    remote.model_messages = None;
-    remote.supports_image_detail_original = true;
+    let mut remote_gpt_5_5 = remote_model("gpt-5.5", "Remote GPT-5.5", /*priority*/ 0);
+    remote_gpt_5_5.base_instructions = "You are Codex, an upstream coding agent.".to_string();
+    remote_gpt_5_5.model_messages = None;
+    remote_gpt_5_5.supports_image_detail_original = true;
+    let mut remote_gpt_5_3 =
+        remote_model("gpt-5.3-codex", "Remote GPT-5.3 Codex", /*priority*/ 1);
+    remote_gpt_5_3.base_instructions = "You are Codex, an upstream coding agent.".to_string();
+    remote_gpt_5_3.model_messages = None;
+    remote_gpt_5_3.supports_image_detail_original = true;
 
     let codex_home = tempdir().expect("temp dir");
-    let endpoint = TestModelsEndpoint::new(vec![vec![remote]]);
+    let endpoint = TestModelsEndpoint::new(vec![vec![remote_gpt_5_5, remote_gpt_5_3]]);
     let manager = openai_manager_for_tests(codex_home.path().to_path_buf(), endpoint);
 
     manager
@@ -391,14 +396,22 @@ async fn refresh_available_models_preserves_goblins_prompt_fields() {
         personality_enabled: true,
         ..Default::default()
     };
-    let model_info = manager.get_model_info("gpt-5.5", &config).await;
-    let instructions = model_info.get_model_instructions(Some(Personality::Pragmatic));
+    for (slug, display_name) in [
+        ("gpt-5.5", "Remote GPT-5.5"),
+        ("gpt-5.3-codex", "Remote GPT-5.3 Codex"),
+    ] {
+        let model_info = manager.get_model_info(slug, &config).await;
+        let instructions = model_info.get_model_instructions(Some(Personality::Pragmatic));
 
-    assert_eq!(model_info.display_name, "Remote GPT-5.5");
-    assert!(model_info.supports_image_detail_original);
-    assert!(model_info.model_messages.is_some());
-    assert!(instructions.contains("You are a Goblin"));
-    assert!(!instructions.contains("You are Codex, an upstream coding agent."));
+        assert_eq!(model_info.display_name, display_name);
+        assert!(model_info.supports_image_detail_original);
+        assert!(model_info.model_messages.is_some());
+        assert!(instructions.contains("You are a Goblin."));
+        assert!(instructions.contains("You happen to live in a terminal and work with code"));
+        assert!(instructions.contains("You run inside the Goblins CLI"));
+        assert!(!instructions.contains("You are a Goblins."));
+        assert!(!instructions.contains("You are Codex, an upstream coding agent."));
+    }
 }
 
 #[tokio::test]
@@ -884,4 +897,37 @@ fn bundled_models_json_roundtrips() {
         !response.models.is_empty(),
         "bundled models.json should contain at least one model"
     );
+}
+
+#[test]
+fn bundled_models_json_includes_project_docs_spec() {
+    let response = crate::bundled_models_response()
+        .unwrap_or_else(|err| panic!("bundled models.json should parse: {err}"));
+
+    for model in &response.models {
+        assert!(
+            model.base_instructions.contains("# Project Docs Spec"),
+            "expected project docs spec in base instructions for {}",
+            model.slug
+        );
+        assert!(
+            model.base_instructions.contains("GOBLINS.md"),
+            "expected GOBLINS.md in base instructions for {}",
+            model.slug
+        );
+        if let Some(model_messages) = &model.model_messages
+            && let Some(instructions_template) = &model_messages.instructions_template
+        {
+            assert!(
+                instructions_template.contains("# Project Docs Spec"),
+                "expected project docs spec in instructions template for {}",
+                model.slug
+            );
+            assert!(
+                instructions_template.contains("GOBLINS.md"),
+                "expected GOBLINS.md in instructions template for {}",
+                model.slug
+            );
+        }
+    }
 }

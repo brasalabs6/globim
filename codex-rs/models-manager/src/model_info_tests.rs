@@ -1,5 +1,6 @@
 use super::*;
 use crate::ModelsManagerConfig;
+use codex_protocol::config_types::Personality;
 use pretty_assertions::assert_eq;
 
 #[test]
@@ -71,4 +72,44 @@ fn model_context_window_uses_model_value_without_override() {
     let updated = with_config_overrides(model.clone(), &config);
 
     assert_eq!(updated, model);
+}
+
+#[test]
+fn goblins_managed_model_matching_covers_current_and_namespaced_slugs() {
+    let managed_slugs = [
+        "gpt-5.5",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "gpt-5.3-codex",
+        "gpt-5.3-codex-test",
+        "custom/gpt-5.3-codex",
+        "gpt-5.2",
+        "codex-auto-review",
+    ];
+
+    for slug in managed_slugs {
+        assert!(
+            is_goblins_managed_model(slug),
+            "expected managed slug {slug}"
+        );
+    }
+    assert!(!is_goblins_managed_model("unknown-model"));
+}
+
+#[test]
+fn fallback_model_instructions_use_current_goblins_identity() {
+    let model = model_info_from_slug("custom/gpt-5.3-codex");
+    let instructions = model.get_model_instructions(Some(Personality::Pragmatic));
+
+    assert!(instructions.contains("You are a Goblin."));
+    assert!(instructions.contains("You happen to live in a terminal and work with code"));
+    assert!(instructions.contains("You run inside the Goblins CLI"));
+    assert!(instructions.contains("# Project Docs Spec"));
+    assert!(instructions.contains("GOBLINS.md"));
+    assert!(instructions.contains("Ship the thing"));
+    assert!(instructions.contains("Failure is information."));
+    assert!(instructions.contains("You are a Goblin, and that means something."));
+    assert_eq!(instructions.matches("You are a Goblin.").count(), 1);
+    assert!(!instructions.contains("You are a Goblins."));
+    assert!(!instructions.contains("You are a Goblin:"));
 }

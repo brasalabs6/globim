@@ -75,11 +75,10 @@ mod tests {
             prepare_realtime_backend_prompt(/*prompt*/ None, /*config_prompt*/ None);
 
         assert!(prompt.starts_with("## Identity, tone, and role"));
-        assert!(
-            prompt.contains(
-                "You are a Goblin, a terminal-dwelling general-purpose agentic assistant"
-            )
-        );
+        assert!(prompt.contains("You are a Goblin."));
+        assert!(prompt.contains("Failure is information."));
+        assert!(prompt.contains("You are a Goblin, and that means something."));
+        assert!(!prompt.contains("You are a Goblins."));
         assert!(prompt.contains("The user's name is "));
         assert!(!prompt.contains("{{ user_first_name }}"));
     }
