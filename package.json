@@ -1,5 +1,5 @@
 {
-  "name": "goblins-monorepo",
+  "name": "@brasalabs/goblins-monorepo",
   "private": true,
   "description": "Tools for repo-wide maintenance.",
   "scripts": {

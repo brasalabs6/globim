@@ -9,7 +9,7 @@ This is not an official OpenAI project. It is a playful fork inspired by the pub
 Install Goblins from npm:
 
 ```shell
-npm install -g goblins
+npm install -g @brasalabs/goblins
 ```
 
 Then run:
@@ -24,7 +24,7 @@ Goblins uses the same local-agent foundation as Codex CLI: it can inspect files,
 
 Goblins `0.125.1` is based on upstream `rust-v0.125.0` / `@openai/codex@0.125.0`, the latest stable release verified for this fork at creation time via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.125.0) and [npm package](https://www.npmjs.com/package/@openai/codex).
 
-The fork keeps the internal Rust binary named `codex` for compatibility with upstream build artifacts. The public npm package is `goblins`, and the public command is `goblin`. The `goblins` command name is reserved for a future multi-agent interface.
+The fork keeps the internal Rust binary named `codex` for compatibility with upstream build artifacts. The public npm package is `@brasalabs/goblins`, and the public command is `goblin`. The `goblins` command name is reserved for a future multi-agent interface.
 
 ## Goblins Personality
 
