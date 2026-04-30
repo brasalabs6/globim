@@ -372,7 +372,7 @@ async fn refresh_available_models_sorts_by_priority() {
 }
 
 #[tokio::test]
-async fn refresh_available_models_preserves_globim_prompt_fields() {
+async fn refresh_available_models_preserves_goblins_prompt_fields() {
     let mut remote = remote_model("gpt-5.5", "Remote GPT-5.5", /*priority*/ 0);
     remote.base_instructions = "You are Codex, an upstream coding agent.".to_string();
     remote.model_messages = None;
@@ -397,7 +397,7 @@ async fn refresh_available_models_preserves_globim_prompt_fields() {
     assert_eq!(model_info.display_name, "Remote GPT-5.5");
     assert!(model_info.supports_image_detail_original);
     assert!(model_info.model_messages.is_some());
-    assert!(instructions.contains("You are Globim"));
+    assert!(instructions.contains("You are a Goblin"));
     assert!(!instructions.contains("You are Codex, an upstream coding agent."));
 }
 

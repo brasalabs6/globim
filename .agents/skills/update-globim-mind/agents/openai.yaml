@@ -1,6 +1,0 @@
-interface:
-  display_name: "Update Globim Mind"
-  short_description: "Update Globim prompts across all models"
-  default_prompt: "Use $update-globim-mind to update Globim's base prompt across every supported model."
-policy:
-  allow_implicit_invocation: true

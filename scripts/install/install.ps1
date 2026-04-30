@@ -61,7 +61,7 @@ function Get-ReleaseAssetMetadata {
         [string]$ResolvedVersion
     )
 
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/openai/codex/releases/tags/rust-v$ResolvedVersion"
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/globim/releases/tags/rust-v$ResolvedVersion"
     $asset = $release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
     if ($null -eq $asset) {
         throw "Could not find release asset $AssetName for Codex $ResolvedVersion."
@@ -154,7 +154,7 @@ function Resolve-Version {
         return $normalizedVersion
     }
 
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/openai/codex/releases/latest"
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/globim/releases/latest"
     if (-not $release.tag_name) {
         Write-Error "Failed to resolve the latest Codex release version."
         exit 1
@@ -189,6 +189,11 @@ function Get-CurrentInstalledVersion {
     param(
         [string]$StandaloneCurrentDir
     )
+
+    $goblinVersion = Get-VersionFromBinary -CodexPath (Join-Path $StandaloneCurrentDir "goblin.exe")
+    if (-not [string]::IsNullOrWhiteSpace($goblinVersion)) {
+        return $goblinVersion
+    }
 
     $standaloneVersion = Get-VersionFromBinary -CodexPath (Join-Path $StandaloneCurrentDir "codex.exe")
     if (-not [string]::IsNullOrWhiteSpace($standaloneVersion)) {
@@ -461,7 +466,7 @@ function Test-ReleaseIsComplete {
     }
 
     $expectedFiles = @(
-        "codex.exe",
+        "goblin.exe",
         "codex-resources\codex-command-runner.exe",
         "codex-resources\codex-windows-sandbox-setup.exe",
         "codex-resources\rg.exe"
@@ -476,7 +481,7 @@ function Test-ReleaseIsComplete {
 }
 
 function Get-ExistingCodexCommand {
-    $existing = Get-Command codex -ErrorAction SilentlyContinue
+    $existing = Get-Command goblin -ErrorAction SilentlyContinue
     if ($null -eq $existing) {
         return $null
     }
@@ -520,8 +525,8 @@ function Get-ConflictingInstall {
         return $null
     }
 
-    Write-Step "Detected existing $manager-managed Codex at $existingPath"
-    Write-WarningStep "Multiple managed Codex installs can be ambiguous because PATH order decides which one runs."
+    Write-Step "Detected existing $manager-managed Goblins at $existingPath"
+    Write-WarningStep "Multiple managed Goblins installs can be ambiguous because PATH order decides which goblin runs."
 
     return [PSCustomObject]@{
         Manager = $manager
@@ -541,21 +546,21 @@ function Maybe-HandleConflictingInstall {
     $manager = $Conflict.Manager
 
     $uninstallArgs = if ($manager -eq "bun") {
-        @("remove", "-g", "globim")
+        @("remove", "-g", "@brasalabs/goblins")
     } else {
-        @("uninstall", "-g", "globim")
+        @("uninstall", "-g", "@brasalabs/goblins")
     }
     $uninstallCommand = if ($manager -eq "bun") { "bun" } else { "npm" }
 
-    if (Prompt-YesNo "Uninstall the existing $manager-managed Codex now?") {
+    if (Prompt-YesNo "Uninstall the existing $manager-managed Goblins now?") {
         Write-Step "Running: $uninstallCommand $($uninstallArgs -join ' ')"
         try {
             & $uninstallCommand @uninstallArgs
         } catch {
-            Write-WarningStep "Failed to uninstall the existing $manager-managed Codex. Continuing with the standalone install."
+            Write-WarningStep "Failed to uninstall the existing $manager-managed Goblins. Continuing with the standalone install."
         }
     } else {
-        Write-WarningStep "Leaving the existing $manager-managed Codex installed. PATH order will determine which codex runs."
+        Write-WarningStep "Leaving the existing $manager-managed Goblins installed. PATH order will determine which goblin runs."
     }
 }
 
@@ -564,10 +569,10 @@ function Test-VisibleCodexCommand {
         [string]$VisibleBinDir
     )
 
-    $codexCommand = Join-Path $VisibleBinDir "codex.exe"
+    $codexCommand = Join-Path $VisibleBinDir "goblin.exe"
     & $codexCommand --version *> $null
     if ($LASTEXITCODE -ne 0) {
-        throw "Installed Codex command failed verification: $codexCommand --version"
+        throw "Installed Goblins command failed verification: $codexCommand --version"
     }
 }
 
@@ -612,7 +617,7 @@ $releasesDir = Join-Path $standaloneRoot "releases"
 $currentDir = Join-Path $standaloneRoot "current"
 $lockPath = Join-Path $standaloneRoot "install.lock"
 
-$defaultVisibleBinDir = Join-Path $env:LOCALAPPDATA "Programs\Globim\bin"
+$defaultVisibleBinDir = Join-Path $env:LOCALAPPDATA "Programs\Goblins\bin"
 if ([string]::IsNullOrWhiteSpace($env:CODEX_INSTALL_DIR)) {
     $visibleBinDir = $defaultVisibleBinDir
 } else {
@@ -625,11 +630,11 @@ $releaseName = "$resolvedVersion-$target"
 $releaseDir = Join-Path $releasesDir $releaseName
 
 if (-not [string]::IsNullOrWhiteSpace($currentVersion) -and $currentVersion -ne $resolvedVersion) {
-    Write-Step "Updating Globim CLI from $currentVersion to $resolvedVersion"
+    Write-Step "Updating Goblins CLI from $currentVersion to $resolvedVersion"
 } elseif (-not [string]::IsNullOrWhiteSpace($currentVersion)) {
-    Write-Step "Updating Globim CLI"
+    Write-Step "Updating Goblins CLI"
 } else {
-    Write-Step "Installing Globim CLI"
+    Write-Step "Installing Goblins CLI"
 }
 Write-Step "Detected platform: $platformLabel"
 Write-Step "Resolved version: $resolvedVersion"
@@ -637,7 +642,7 @@ Write-Step "Resolved version: $resolvedVersion"
 $conflictingInstall = Get-ConflictingInstall -VisibleBinDir $visibleBinDir
 $oldStandaloneBackup = $null
 
-$packageAsset = "globim-npm-$npmTag-$resolvedVersion.tgz"
+$packageAsset = "goblins-npm-$npmTag-$resolvedVersion.tgz"
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("codex-install-" + [System.Guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 
@@ -655,7 +660,7 @@ try {
             $stagingDir = Join-Path $releasesDir ".staging.$releaseName.$PID"
             $assetMetadata = Get-ReleaseAssetMetadata -AssetName $packageAsset -ResolvedVersion $resolvedVersion
 
-            Write-Step "Downloading Globim CLI"
+            Write-Step "Downloading Goblins CLI"
             Invoke-WebRequest -Uri $assetMetadata.Url -OutFile $archivePath
             Test-ArchiveDigest -ArchivePath $archivePath -ExpectedDigest $assetMetadata.Sha256
 
@@ -671,7 +676,7 @@ try {
             $resourcesDir = Join-Path $stagingDir "codex-resources"
             New-Item -ItemType Directory -Force -Path $resourcesDir | Out-Null
             $copyMap = @{
-                "codex/codex.exe" = "codex.exe"
+                "codex/codex.exe" = "goblin.exe"
                 "codex/codex-command-runner.exe" = "codex-resources\codex-command-runner.exe"
                 "codex/codex-windows-sandbox-setup.exe" = "codex-resources\codex-windows-sandbox-setup.exe"
                 "path/rg.exe" = "codex-resources\rg.exe"
@@ -739,12 +744,12 @@ if (-not (Path-Contains -PathValue $env:Path -Entry $visibleBinDir)) {
     }
 }
 
-Write-Step "Current PowerShell session: codex"
-Write-Step "Future PowerShell windows: open a new PowerShell window and run: codex"
-Write-Host "Globim CLI $resolvedVersion installed successfully."
+Write-Step "Current PowerShell session: goblin"
+Write-Step "Future PowerShell windows: open a new PowerShell window and run: goblin"
+Write-Host "Goblins CLI $resolvedVersion installed successfully."
 
-$codexCommand = Join-Path $visibleBinDir "codex.exe"
-if (Prompt-YesNo "Start Codex now?") {
-    Write-Step "Launching Codex"
+$codexCommand = Join-Path $visibleBinDir "goblin.exe"
+if (Prompt-YesNo "Start Goblins now?") {
+    Write-Step "Launching Goblins"
     & $codexCommand
 }

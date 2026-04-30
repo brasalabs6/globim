@@ -14,7 +14,7 @@ use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
 pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const DEFAULT_PERSONALITY_HEADER: &str = "You are Globim, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
+const DEFAULT_PERSONALITY_HEADER: &str = "You are a Goblin, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
 const LOCAL_FRIENDLY_TEMPLATE: &str =
     "You optimize for team morale and being a supportive teammate as much as code quality.";
 const LOCAL_PRAGMATIC_TEMPLATE: &str =
@@ -63,7 +63,7 @@ pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig)
     model
 }
 
-/// Preserve Globim-owned prompt fields while allowing remote model metadata to
+/// Preserve Goblins-owned prompt fields while allowing remote model metadata to
 /// update capabilities, limits, and availability around them.
 pub(crate) fn apply_local_prompt_overrides(
     mut model: ModelInfo,
@@ -74,7 +74,7 @@ pub(crate) fn apply_local_prompt_overrides(
         if local_model.model_messages.is_some() {
             model.model_messages = local_model.model_messages.clone();
         }
-    } else if is_globim_managed_model(&model.slug) {
+    } else if is_goblins_managed_model(&model.slug) {
         model.base_instructions = BASE_INSTRUCTIONS.to_string();
     }
 
@@ -124,7 +124,7 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
 }
 
 fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
-    if is_globim_managed_model(slug) {
+    if is_goblins_managed_model(slug) {
         Some(ModelMessages {
             instructions_template: Some(format!(
                 "{DEFAULT_PERSONALITY_HEADER}\n\n{PERSONALITY_PLACEHOLDER}\n\n{BASE_INSTRUCTIONS}"
@@ -140,7 +140,7 @@ fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
     }
 }
 
-fn is_globim_managed_model(slug: &str) -> bool {
+fn is_goblins_managed_model(slug: &str) -> bool {
     matches!(slug, "gpt-5.5" | "gpt-5.2-codex" | "exp-codex-personality")
 }
 

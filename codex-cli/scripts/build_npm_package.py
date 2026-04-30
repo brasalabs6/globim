@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage and optionally package the Globim npm module."""
+"""Stage and optionally package the Goblins npm module."""
 
 import argparse
 import json
@@ -14,47 +14,47 @@ CODEX_CLI_ROOT = SCRIPT_DIR.parent
 REPO_ROOT = CODEX_CLI_ROOT.parent
 RESPONSES_API_PROXY_NPM_ROOT = REPO_ROOT / "codex-rs" / "responses-api-proxy" / "npm"
 CODEX_SDK_ROOT = REPO_ROOT / "sdk" / "typescript"
-CODEX_NPM_NAME = "globim"
+CODEX_NPM_NAME = "@brasalabs/goblins"
 
-# `npm_name` is the platform package consumed by `bin/globim.js`.
+# `npm_name` is the platform package consumed by `bin/goblin.js`.
 CODEX_PLATFORM_PACKAGES: dict[str, dict[str, str]] = {
-    "globim-linux-x64": {
-        "npm_name": "globim-linux-x64",
+    "@brasalabs/goblins-linux-x64": {
+        "npm_name": "@brasalabs/goblins-linux-x64",
         "npm_tag": "linux-x64",
         "target_triple": "x86_64-unknown-linux-musl",
         "os": "linux",
         "cpu": "x64",
     },
-    "globim-linux-arm64": {
-        "npm_name": "globim-linux-arm64",
+    "@brasalabs/goblins-linux-arm64": {
+        "npm_name": "@brasalabs/goblins-linux-arm64",
         "npm_tag": "linux-arm64",
         "target_triple": "aarch64-unknown-linux-musl",
         "os": "linux",
         "cpu": "arm64",
     },
-    "globim-darwin-x64": {
-        "npm_name": "globim-darwin-x64",
+    "@brasalabs/goblins-darwin-x64": {
+        "npm_name": "@brasalabs/goblins-darwin-x64",
         "npm_tag": "darwin-x64",
         "target_triple": "x86_64-apple-darwin",
         "os": "darwin",
         "cpu": "x64",
     },
-    "globim-darwin-arm64": {
-        "npm_name": "globim-darwin-arm64",
+    "@brasalabs/goblins-darwin-arm64": {
+        "npm_name": "@brasalabs/goblins-darwin-arm64",
         "npm_tag": "darwin-arm64",
         "target_triple": "aarch64-apple-darwin",
         "os": "darwin",
         "cpu": "arm64",
     },
-    "globim-win32-x64": {
-        "npm_name": "globim-win32-x64",
+    "@brasalabs/goblins-win32-x64": {
+        "npm_name": "@brasalabs/goblins-win32-x64",
         "npm_tag": "win32-x64",
         "target_triple": "x86_64-pc-windows-msvc",
         "os": "win32",
         "cpu": "x64",
     },
-    "globim-win32-arm64": {
-        "npm_name": "globim-win32-arm64",
+    "@brasalabs/goblins-win32-arm64": {
+        "npm_name": "@brasalabs/goblins-win32-arm64",
         "npm_tag": "win32-arm64",
         "target_triple": "aarch64-pc-windows-msvc",
         "os": "win32",
@@ -63,17 +63,27 @@ CODEX_PLATFORM_PACKAGES: dict[str, dict[str, str]] = {
 }
 
 PACKAGE_EXPANSIONS: dict[str, list[str]] = {
-    "globim": ["globim", *CODEX_PLATFORM_PACKAGES],
+    CODEX_NPM_NAME: [CODEX_NPM_NAME, *CODEX_PLATFORM_PACKAGES],
 }
 
 PACKAGE_NATIVE_COMPONENTS: dict[str, list[str]] = {
-    "globim": [],
-    "globim-linux-x64": ["codex", "rg"],
-    "globim-linux-arm64": ["codex", "rg"],
-    "globim-darwin-x64": ["codex", "rg"],
-    "globim-darwin-arm64": ["codex", "rg"],
-    "globim-win32-x64": ["codex", "rg", "codex-windows-sandbox-setup", "codex-command-runner"],
-    "globim-win32-arm64": ["codex", "rg", "codex-windows-sandbox-setup", "codex-command-runner"],
+    CODEX_NPM_NAME: [],
+    "@brasalabs/goblins-linux-x64": ["codex", "rg"],
+    "@brasalabs/goblins-linux-arm64": ["codex", "rg"],
+    "@brasalabs/goblins-darwin-x64": ["codex", "rg"],
+    "@brasalabs/goblins-darwin-arm64": ["codex", "rg"],
+    "@brasalabs/goblins-win32-x64": [
+        "codex",
+        "rg",
+        "codex-windows-sandbox-setup",
+        "codex-command-runner",
+    ],
+    "@brasalabs/goblins-win32-arm64": [
+        "codex",
+        "rg",
+        "codex-windows-sandbox-setup",
+        "codex-command-runner",
+    ],
     "codex-responses-api-proxy": ["codex-responses-api-proxy"],
     "codex-sdk": [],
 }
@@ -95,12 +105,12 @@ COMPONENT_DEST_DIR: dict[str, str] = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build or stage the Globim CLI npm package.")
+    parser = argparse.ArgumentParser(description="Build or stage the Goblins CLI npm package.")
     parser.add_argument(
         "--package",
         choices=PACKAGE_CHOICES,
-        default="globim",
-        help="Which npm package to stage (default: globim).",
+        default=CODEX_NPM_NAME,
+        help=f"Which npm package to stage (default: {CODEX_NPM_NAME}).",
     )
     parser.add_argument(
         "--version",
@@ -180,12 +190,12 @@ def main() -> int:
 
         if release_version:
             staging_dir_str = str(staging_dir)
-            if package == "globim":
+            if package == CODEX_NPM_NAME:
                 print(
                     f"Staged version {version} for release in {staging_dir_str}\n\n"
                     "Verify the CLI:\n"
-                    f"    node {staging_dir_str}/bin/globim.js --version\n"
-                    f"    node {staging_dir_str}/bin/globim.js --help\n\n"
+                    f"    node {staging_dir_str}/bin/goblin.js --version\n"
+                    f"    node {staging_dir_str}/bin/goblin.js --help\n\n"
                 )
             elif package == "codex-responses-api-proxy":
                 print(
@@ -228,7 +238,7 @@ def prepare_staging_dir(staging_dir: Path | None) -> tuple[Path, bool]:
             raise RuntimeError(f"Staging directory {staging_dir} is not empty.")
         return staging_dir, False
 
-    temp_dir = Path(tempfile.mkdtemp(prefix="globim-npm-stage-"))
+    temp_dir = Path(tempfile.mkdtemp(prefix="goblins-npm-stage-"))
     return temp_dir, True
 
 
@@ -236,10 +246,10 @@ def stage_sources(staging_dir: Path, version: str, package: str) -> None:
     package_json: dict
     package_json_path: Path | None = None
 
-    if package == "globim":
+    if package == CODEX_NPM_NAME:
         bin_dir = staging_dir / "bin"
         bin_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(CODEX_CLI_ROOT / "bin" / "globim.js", bin_dir / "globim.js")
+        shutil.copy2(CODEX_CLI_ROOT / "bin" / "goblin.js", bin_dir / "goblin.js")
         rg_manifest = CODEX_CLI_ROOT / "bin" / "rg"
         if rg_manifest.exists():
             shutil.copy2(rg_manifest, bin_dir / "rg")
@@ -300,14 +310,14 @@ def stage_sources(staging_dir: Path, version: str, package: str) -> None:
             package_json = json.load(fh)
         package_json["version"] = version
 
-    if package == "globim":
+    if package == CODEX_NPM_NAME:
         package_json["files"] = ["bin"]
         package_json["optionalDependencies"] = {
             CODEX_PLATFORM_PACKAGES[platform_package]["npm_name"]: compute_platform_package_version(
                 version, CODEX_PLATFORM_PACKAGES[platform_package]["npm_tag"]
             )
-            for platform_package in PACKAGE_EXPANSIONS["globim"]
-            if platform_package != "globim"
+            for platform_package in PACKAGE_EXPANSIONS[CODEX_NPM_NAME]
+            if platform_package != CODEX_NPM_NAME
         }
 
     elif package == "codex-sdk":
@@ -417,7 +427,7 @@ def run_npm_pack(staging_dir: Path, output_path: Path) -> Path:
     output_path = output_path.resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="globim-npm-pack-") as pack_dir_str:
+    with tempfile.TemporaryDirectory(prefix="goblins-npm-pack-") as pack_dir_str:
         pack_dir = Path(pack_dir_str)
         stdout = subprocess.check_output(
             ["npm", "pack", "--json", "--pack-destination", str(pack_dir)],

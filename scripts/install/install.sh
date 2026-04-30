@@ -5,7 +5,7 @@ set -eu
 RELEASE="latest"
 
 BIN_DIR="${CODEX_INSTALL_DIR:-$HOME/.local/bin}"
-BIN_PATH="$BIN_DIR/codex"
+BIN_PATH="$BIN_DIR/goblin"
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 STANDALONE_ROOT="$CODEX_HOME_DIR/packages/standalone"
 RELEASES_DIR="$STANDALONE_ROOT/releases"
@@ -111,13 +111,13 @@ release_url_for_asset() {
   asset="$1"
   resolved_version="$2"
 
-  printf 'https://github.com/openai/codex/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
+  printf 'https://github.com/brasalabs6/globim/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
 }
 
 release_metadata_url() {
   resolved_version="$1"
 
-  printf 'https://api.github.com/repos/openai/codex/releases/tags/rust-v%s\n' "$resolved_version"
+  printf 'https://api.github.com/repos/brasalabs6/globim/releases/tags/rust-v%s\n' "$resolved_version"
 }
 
 release_asset_digest() {
@@ -215,7 +215,7 @@ resolve_version() {
     return
   fi
 
-  release_json="$(download_text "https://api.github.com/repos/openai/codex/releases/latest")"
+  release_json="$(download_text "https://api.github.com/repos/brasalabs6/globim/releases/latest")"
   resolved="$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name":[[:space:]]*"rust-v\([^"]*\)".*/\1/p' | head -n 1)"
 
   if [ -z "$resolved" ]; then
@@ -451,7 +451,7 @@ current_installed_version() {
 }
 
 resolve_existing_codex() {
-  command -v codex 2>/dev/null || true
+  command -v goblin 2>/dev/null || true
 }
 
 classify_existing_codex() {
@@ -515,30 +515,30 @@ prompt_yes_no() {
 print_launch_instructions() {
   case "$path_action" in
     added)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH was added to $path_profile"
       ;;
     updated)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH was updated in $path_profile"
       ;;
     configured)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH is already configured in $path_profile"
       ;;
     *)
-      step "Current terminal: codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       ;;
   esac
 }
 
 maybe_launch_codex_now() {
-  if prompt_yes_no "Start Codex now?"; then
-    step "Launching Codex"
+  if prompt_yes_no "Start Goblins now?"; then
+    step "Launching Goblins"
     "$BIN_PATH"
   fi
 }
@@ -553,8 +553,8 @@ detect_conflicting_install() {
 
   conflict_manager="$manager"
   conflict_path="$existing_path"
-  step "Detected existing $manager-managed Codex at $existing_path"
-  warn "Multiple managed Codex installs can be ambiguous because PATH order decides which one runs."
+  step "Detected existing $manager-managed Goblins at $existing_path"
+  warn "Multiple managed Goblins installs can be ambiguous because PATH order decides which goblin runs."
 }
 
 handle_conflicting_install() {
@@ -564,23 +564,23 @@ handle_conflicting_install() {
 
   case "$conflict_manager" in
     brew)
-      uninstall_cmd="brew uninstall --cask codex"
+      uninstall_cmd="brew uninstall goblins"
       ;;
     bun)
-      uninstall_cmd="bun remove -g globim"
+      uninstall_cmd="bun remove -g @brasalabs/goblins"
       ;;
     *)
-      uninstall_cmd="npm uninstall -g globim"
+      uninstall_cmd="npm uninstall -g @brasalabs/goblins"
       ;;
   esac
 
-  if prompt_yes_no "Uninstall the existing $conflict_manager-managed Codex now?"; then
+  if prompt_yes_no "Uninstall the existing $conflict_manager-managed Goblins now?"; then
     step "Running: $uninstall_cmd"
     if ! sh -c "$uninstall_cmd"; then
-      warn "Failed to uninstall the existing $conflict_manager-managed Codex. Continuing with the standalone install."
+      warn "Failed to uninstall the existing $conflict_manager-managed Goblins. Continuing with the standalone install."
     fi
   else
-    warn "Leaving the existing $conflict_manager-managed Codex installed. PATH order will determine which codex runs."
+    warn "Leaving the existing $conflict_manager-managed Goblins installed. PATH order will determine which goblin runs."
   fi
 }
 
@@ -692,18 +692,18 @@ else
 fi
 
 resolved_version="$(resolve_version)"
-asset="globim-npm-$npm_tag-$resolved_version.tgz"
+asset="goblins-npm-$npm_tag-$resolved_version.tgz"
 download_url="$(release_url_for_asset "$asset" "$resolved_version")"
 release_name="$resolved_version-$vendor_target"
 release_dir="$RELEASES_DIR/$release_name"
 current_version="$(current_installed_version)"
 
 if [ -n "$current_version" ] && [ "$current_version" != "$resolved_version" ]; then
-  step "Updating Globim CLI from $current_version to $resolved_version"
+  step "Updating Goblins CLI from $current_version to $resolved_version"
 elif [ -n "$current_version" ]; then
-  step "Updating Globim CLI"
+  step "Updating Goblins CLI"
 else
-  step "Installing Globim CLI"
+  step "Installing Goblins CLI"
 fi
 step "Detected platform: $platform_label"
 step "Resolved version: $resolved_version"
@@ -730,7 +730,7 @@ if ! release_dir_is_complete "$release_dir" "$resolved_version" "$vendor_target"
   archive_path="$tmp_dir/$asset"
   extract_dir="$tmp_dir/extract"
 
-  step "Downloading Globim CLI"
+  step "Downloading Goblins CLI"
   expected_digest="$(release_asset_digest "$asset" "$resolved_version")"
   download_file "$download_url" "$archive_path"
   verify_archive_digest "$archive_path" "$expected_digest"
@@ -764,5 +764,5 @@ case "$path_action" in
     ;;
 esac
 
-printf 'Globim CLI %s installed successfully.\n' "$resolved_version"
+printf 'Goblins CLI %s installed successfully.\n' "$resolved_version"
 maybe_launch_codex_now
