@@ -1,0 +1,6 @@
+interface:
+  display_name: "Update Goblins Mind"
+  short_description: "Update Goblins prompts across all models"
+  default_prompt: "Use $update-goblins-mind to update Goblins' base prompt across every supported model."
+policy:
+  allow_implicit_invocation: true

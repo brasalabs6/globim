@@ -6,14 +6,14 @@ example, to stage the CLI, responses proxy, and SDK packages for version `0.6.0`
 ```bash
 ./scripts/stage_npm_packages.py \
   --release-version 0.6.0 \
-  --package globim
+  --package goblins
 ```
 
 This downloads the native artifacts once, hydrates `vendor/` for each package, and writes
 tarballs to `dist/npm/`.
 
-When `--package globim` is provided, the staging helper builds the lightweight
-`globim` meta package plus all platform-native `globim` variants
+When `--package goblins` is provided, the staging helper builds the lightweight
+`goblins` meta package plus all platform-native `goblins` variants
 that are later published under platform-specific dist-tags.
 
 If you need to invoke `build_npm_package.py` directly, run

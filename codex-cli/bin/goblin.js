@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Unified entry point for the Globim CLI.
+// Unified entry point for the Goblins CLI.
 
 import { spawn } from "node:child_process";
 import { existsSync } from "fs";
@@ -13,12 +13,12 @@ const __dirname = path.dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const PLATFORM_PACKAGE_BY_TARGET = {
-  "x86_64-unknown-linux-musl": "globim-linux-x64",
-  "aarch64-unknown-linux-musl": "globim-linux-arm64",
-  "x86_64-apple-darwin": "globim-darwin-x64",
-  "aarch64-apple-darwin": "globim-darwin-arm64",
-  "x86_64-pc-windows-msvc": "globim-win32-x64",
-  "aarch64-pc-windows-msvc": "globim-win32-arm64",
+  "x86_64-unknown-linux-musl": "goblins-linux-x64",
+  "aarch64-unknown-linux-musl": "goblins-linux-arm64",
+  "x86_64-apple-darwin": "goblins-darwin-x64",
+  "aarch64-apple-darwin": "goblins-darwin-arm64",
+  "x86_64-pc-windows-msvc": "goblins-win32-x64",
+  "aarch64-pc-windows-msvc": "goblins-win32-arm64",
 };
 
 const { platform, arch } = process;
@@ -75,7 +75,7 @@ if (!platformPackage) {
   throw new Error(`Unsupported target triple: ${targetTriple}`);
 }
 
-// Keep the internal Rust binary named `codex` so Globim can reuse upstream
+// Keep the internal Rust binary named `codex` so Goblins can reuse upstream
 // release artifacts and minimize long-term fork drift.
 const codexBinaryName = process.platform === "win32" ? "codex.exe" : "codex";
 const localVendorRoot = path.join(__dirname, "..", "vendor");
@@ -97,10 +97,10 @@ try {
     const packageManager = detectPackageManager();
     const updateCommand =
       packageManager === "bun"
-        ? "bun install -g globim@latest"
-        : "npm install -g globim@latest";
+        ? "bun install -g goblins@latest"
+        : "npm install -g goblins@latest";
     throw new Error(
-      `Missing optional dependency ${platformPackage}. Reinstall Globim: ${updateCommand}`,
+      `Missing optional dependency ${platformPackage}. Reinstall Goblins: ${updateCommand}`,
     );
   }
 }
@@ -109,10 +109,10 @@ if (!vendorRoot) {
   const packageManager = detectPackageManager();
   const updateCommand =
     packageManager === "bun"
-      ? "bun install -g globim@latest"
-      : "npm install -g globim@latest";
+      ? "bun install -g goblins@latest"
+      : "npm install -g goblins@latest";
   throw new Error(
-    `Missing optional dependency ${platformPackage}. Reinstall Globim: ${updateCommand}`,
+    `Missing optional dependency ${platformPackage}. Reinstall Goblins: ${updateCommand}`,
   );
 }
 
@@ -136,7 +136,7 @@ function getUpdatedPath(newDirs) {
 }
 
 /**
- * Use heuristics to detect the package manager that was used to install Globim
+ * Use heuristics to detect the package manager that was used to install Goblins
  * in order to give the user a hint about how to update it.
  */
 function detectPackageManager() {
@@ -170,8 +170,8 @@ const updatedPath = getUpdatedPath(additionalDirs);
 const env = { ...process.env, PATH: updatedPath };
 const packageManagerEnvVar =
   detectPackageManager() === "bun"
-    ? "GLOBIM_MANAGED_BY_BUN"
-    : "GLOBIM_MANAGED_BY_NPM";
+    ? "GOBLINS_MANAGED_BY_BUN"
+    : "GOBLINS_MANAGED_BY_NPM";
 env[packageManagerEnvVar] = "1";
 
 const child = spawn(binaryPath, process.argv.slice(2), {
