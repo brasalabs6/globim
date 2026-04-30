@@ -89,6 +89,40 @@ async fn configured_fallback_is_used_when_agents_candidate_is_directory() -> Res
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn globim_md_is_appended_to_model_visible_instructions() -> Result<()> {
+    let instructions =
+        agents_instructions(test_codex().with_workspace_setup(|cwd, fs| async move {
+            fs.write_file(
+                &cwd.join("AGENTS.md"),
+                b"agents doc".to_vec(),
+                /*sandbox*/ None,
+            )
+            .await?;
+            fs.write_file(
+                &cwd.join("GLOBIM.md"),
+                b"globim doc".to_vec(),
+                /*sandbox*/ None,
+            )
+            .await?;
+            Ok::<(), anyhow::Error>(())
+        }))
+        .await?;
+
+    let agents_pos = instructions
+        .find("agents doc")
+        .expect("expected AGENTS.md contents in model-visible instructions");
+    let globim_pos = instructions
+        .find("globim doc")
+        .expect("expected GLOBIM.md contents in model-visible instructions");
+    assert!(
+        agents_pos < globim_pos,
+        "expected AGENTS.md before GLOBIM.md: {instructions}"
+    );
+
+    Ok(())
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn agents_docs_are_concatenated_from_project_root_to_cwd() -> Result<()> {
     let instructions = agents_instructions(
         test_codex()
