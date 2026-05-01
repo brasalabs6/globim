@@ -4,8 +4,8 @@
 
 - `main` belongs to upstream `openai/codex` and must be kept as an upstream mirror.
 - Do not land Goblins-specific commits on `main`.
-- `goblimling` is the default branch for this fork and the primary branch for Goblins development, CI, releases, and npm publication.
-- Upstream updates should be brought in by updating `main` from `upstream/main`, then intentionally rebasing or merging `goblimling` against the chosen stable upstream base.
+- `globimling` is the default branch for this fork and the primary branch for Goblins development, CI, releases, and npm publication.
+- Upstream updates should be brought in by updating `main` from `upstream/main`, then intentionally rebasing or merging `globimling` against the chosen stable upstream base.
 
 ## Stable Base
 
@@ -29,6 +29,6 @@
 
 ## Release Contract
 
-- GitHub Actions publishes releases from `rust-v*.*.*` tags on `goblimling`.
+- GitHub Actions publishes releases from `rust-v*.*.*` tags on `globimling`.
 - npm publication uses `NPM_TOKEN` from GitHub Actions secrets.
 - If `NPM_TOKEN` is absent, build and release validation may proceed, but npm publication is blocked until the secret is configured.

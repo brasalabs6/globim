@@ -7,7 +7,7 @@ Goblins is a public community fork of OpenAI Codex CLI. Version 1 of the fork is
 ## Branch And Upstream Contract
 
 - `main` is reserved for upstream `openai/codex` mirroring.
-- `goblimling` is the default branch and the branch where Goblins development and releases happen.
+- `globimling` is the default branch and the branch where Goblins development and releases happen.
 - Goblins changes must not be committed directly to `main`.
 - Stable Goblins releases should start from the latest stable upstream `rust-v*` release unless maintainers explicitly approve a prerelease base.
 

@@ -61,7 +61,7 @@ function Get-ReleaseAssetMetadata {
         [string]$ResolvedVersion
     )
 
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/goblim/releases/tags/rust-v$ResolvedVersion"
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/globim/releases/tags/rust-v$ResolvedVersion"
     $asset = $release.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
     if ($null -eq $asset) {
         throw "Could not find release asset $AssetName for Codex $ResolvedVersion."
@@ -154,7 +154,7 @@ function Resolve-Version {
         return $normalizedVersion
     }
 
-    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/goblim/releases/latest"
+    $release = Invoke-RestMethod -Uri "https://api.github.com/repos/brasalabs6/globim/releases/latest"
     if (-not $release.tag_name) {
         Write-Error "Failed to resolve the latest Codex release version."
         exit 1
