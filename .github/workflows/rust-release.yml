@@ -199,6 +199,9 @@ jobs:
           --bin codex-windows-sandbox-setup
           --bin codex-command-runner
 
+      - name: Install DotSlash
+        uses: facebook/install-dotslash@1e4e7b3e07eaca387acb98f1d4720e0bee8dbb6a # v2
+
       - name: Stage artifacts
         shell: bash
         run: |
