@@ -6,7 +6,27 @@ on:
   pull_request: {}
 
 jobs:
+  changed:
+    name: Detect source changes
+    runs-on: ubuntu-24.04
+    outputs:
+      source: ${{ steps.detect.outputs.source }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: Detect source paths
+        id: detect
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: bash .github/scripts/detect-source-change.sh sdk
+
   sdks:
+    needs: changed
+    if: ${{ needs.changed.outputs.source == 'true' }}
     runs-on:
       group: codex-runners
       labels: codex-linux-x64

@@ -16,7 +16,27 @@ concurrency:
   group: concurrency-group::${{ github.workflow }}::${{ github.event.pull_request.number > 0 && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}${{ github.ref_name == 'main' && format('::{0}', github.run_id) || ''}}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 jobs:
+  changed:
+    name: Detect source changes
+    runs-on: ubuntu-24.04
+    outputs:
+      source: ${{ steps.detect.outputs.source }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: Detect source paths
+        id: detect
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: bash .github/scripts/detect-source-change.sh bazel
+
   test:
+    needs: changed
+    if: ${{ needs.changed.outputs.source == 'true' }}
     # Even though a no-cache-hit Windows build seems to exceed the 30-minute
     # limit on occasion, the more common reason for exceeding the limit is a
     # true test failure in a rust_test() marked "flaky" that gets run 3x.
@@ -131,6 +151,8 @@ jobs:
           key: ${{ steps.prepare_bazel.outputs.repository-cache-key }}
 
   clippy:
+    needs: changed
+    if: ${{ needs.changed.outputs.source == 'true' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -215,6 +237,8 @@ jobs:
           key: ${{ steps.prepare_bazel.outputs.repository-cache-key }}
 
   verify-release-build:
+    needs: changed
+    if: ${{ needs.changed.outputs.source == 'true' }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
