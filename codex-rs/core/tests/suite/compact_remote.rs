@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use codex_core::compact::SUMMARY_PREFIX;
+use codex_features::Feature;
 use codex_login::CodexAuth;
 use codex_protocol::dynamic_tools::DynamicToolSpec;
 use codex_protocol::items::TurnItem;
@@ -2313,6 +2314,7 @@ async fn snapshot_request_shape_remote_pre_turn_compaction_strips_incoming_model
             .with_auth(CodexAuth::create_dummy_chatgpt_auth_for_testing())
             .with_model(previous_model)
             .with_config(|config| {
+                let _ = config.features.disable(Feature::Personality);
                 config.model_auto_compact_token_limit = Some(200);
             }),
     )

@@ -3143,6 +3143,7 @@ async fn snapshot_request_shape_pre_turn_compaction_strips_incoming_model_switch
             config.model_provider = model_provider;
             set_test_compact_prompt(config);
             let _ = config.features.enable(Feature::RemoteModels);
+            let _ = config.features.disable(Feature::Personality);
             config.model_auto_compact_token_limit = Some(200);
         })
         .build(&server)
