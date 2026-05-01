@@ -83,7 +83,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          GOBLINS_VERSION=0.125.1
+          GOBLINS_VERSION=0.128.0
           OUTPUT_DIR="${RUNNER_TEMP}"
           python3 ./codex-cli/scripts/build_npm_package.py \
             --release-version "$GOBLINS_VERSION" \
