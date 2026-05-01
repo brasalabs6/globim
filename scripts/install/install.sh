@@ -111,13 +111,13 @@ release_url_for_asset() {
   asset="$1"
   resolved_version="$2"
 
-  printf 'https://github.com/brasalabs6/globim/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
+  printf 'https://github.com/brasalabs6/goblim/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
 }
 
 release_metadata_url() {
   resolved_version="$1"
 
-  printf 'https://api.github.com/repos/brasalabs6/globim/releases/tags/rust-v%s\n' "$resolved_version"
+  printf 'https://api.github.com/repos/brasalabs6/goblim/releases/tags/rust-v%s\n' "$resolved_version"
 }
 
 release_asset_digest() {
@@ -215,7 +215,7 @@ resolve_version() {
     return
   fi
 
-  release_json="$(download_text "https://api.github.com/repos/brasalabs6/globim/releases/latest")"
+  release_json="$(download_text "https://api.github.com/repos/brasalabs6/goblim/releases/latest")"
   resolved="$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name":[[:space:]]*"rust-v\([^"]*\)".*/\1/p' | head -n 1)"
 
   if [ -z "$resolved" ]; then

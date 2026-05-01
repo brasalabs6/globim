@@ -34,7 +34,7 @@ Goblins is the fork and CLI. Goblins are the fictional terminal-dwelling coding 
 
 ## Branch Policy
 
-`main` belongs to upstream and must remain an upstream mirror. Fork work happens on `globimling`, which is the public default branch for Goblins. See [GOBLINS.md](GOBLINS.md) for the full branch and release contract.
+`main` belongs to upstream and must remain an upstream mirror. Fork work happens on `goblimling`, which is the public default branch for Goblins. See [GOBLINS.md](GOBLINS.md) for the full branch and release contract.
 
 ## License
 
