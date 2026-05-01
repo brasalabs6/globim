@@ -44,7 +44,7 @@ jobs:
     #
     # Ultimately we need true distributed builds (e.g.,
     # https://www.buildbuddy.io/docs/rbe-setup/) to speed things up.
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -147,7 +147,7 @@ jobs:
   clippy:
     needs: changed
     if: ${{ needs.changed.outputs.source == 'true' }}
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -230,7 +230,7 @@ jobs:
   verify-release-build:
     needs: changed
     if: ${{ needs.changed.outputs.source == 'true' }}
-    timeout-minutes: 30
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
