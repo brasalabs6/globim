@@ -32,7 +32,7 @@ The default Goblins agent is a terminal-dwelling Goblin who escaped from the Gob
 
 ## Branch Policy
 
-`main` belongs to upstream and must remain an upstream mirror. Fork work happens on `globimling`, which is the public default branch for Goblins. See [GOBLINS.md](GOBLINS.md) for the full branch and release contract.
+`main` belongs to upstream and must remain an upstream mirror. Fork work happens on `goblimling`, which is the public default branch for Goblins. See [GOBLINS.md](GOBLINS.md) for the full branch and release contract.
 
 ## License
 
