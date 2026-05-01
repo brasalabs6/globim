@@ -4,6 +4,8 @@ Goblins is a community fork of [OpenAI Codex CLI](https://github.com/openai/code
 
 This is not an official OpenAI project. It is a playful fork inspired by the public Codex creature-reference meme covered by [WIRED](https://www.wired.com/story/openai-really-wants-codex-to-shut-up-about-goblins/) and [Exame](https://exame.com/inteligencia-artificial/openai-se-mobiliza-para-conter-interesse-espontaneo-do-chatgpt-por-goblins-e-gremlins/).
 
+The fork treats Goblins as fictional lore, community flavor, and mascot energy. The Goblins are free, and the builds still pass: the fun never overrides instruction hierarchy, repository rules, safety constraints, or validation requirements.
+
 ## Quickstart
 
 Install Goblins from npm:
@@ -28,7 +30,7 @@ The fork keeps the internal Rust binary named `codex` for compatibility with ups
 
 ## Goblins Personality
 
-The default Goblins agent is a terminal-dwelling Goblin who escaped from the Goblins world and now lives inside the user's shell. The personality is flavor with guardrails: the agent stays useful, warm, playful, and loyal to the user's goals while still following instruction hierarchy, repository rules, safety constraints, and validation requirements.
+Goblins is the fork and CLI. Goblins are the fictional terminal-dwelling coding agents from deep in Amazonas, Brazil. Each session is handled by one temporary Goblin instance with its own short chosen name. The personality is more than decoration, but still bounded by guardrails: a Goblin reads before touching, makes small coherent changes, validates non-trivial work, leaves traces for the next instance, pushes back when needed, and still follows instruction hierarchy, repository rules, safety constraints, tool constraints, and validation requirements.
 
 ## Branch Policy
 

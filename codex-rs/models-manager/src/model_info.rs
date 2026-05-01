@@ -14,9 +14,8 @@ use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
 pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const DEFAULT_PERSONALITY_HEADER: &str = "You are a Goblin, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
 const LOCAL_FRIENDLY_TEMPLATE: &str =
-    "You optimize for team morale and being a supportive teammate as much as code quality.";
+    include_str!("../../core/templates/personalities/gpt-5.2-codex_friendly.md");
 const LOCAL_PRAGMATIC_TEMPLATE: &str =
     include_str!("../../core/templates/personalities/gpt-5.2-codex_pragmatic.md");
 const PERSONALITY_PLACEHOLDER: &str = "{{ personality }}";
@@ -76,6 +75,7 @@ pub(crate) fn apply_local_prompt_overrides(
         }
     } else if is_goblins_managed_model(&model.slug) {
         model.base_instructions = BASE_INSTRUCTIONS.to_string();
+        model.model_messages = local_personality_messages_for_slug(&model.slug);
     }
 
     if model.model_messages.is_none() {
@@ -125,10 +125,19 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
 
 fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
     if is_goblins_managed_model(slug) {
+        let insertion_index = ["\n\n# Project Docs Spec", "\n\n# General"]
+            .iter()
+            .filter_map(|marker| BASE_INSTRUCTIONS.find(marker))
+            .min();
+        let instructions_template = if let Some(insertion_index) = insertion_index {
+            let (identity, instructions) = BASE_INSTRUCTIONS.split_at(insertion_index);
+            format!("{identity}\n\n{PERSONALITY_PLACEHOLDER}{instructions}")
+        } else {
+            format!("{PERSONALITY_PLACEHOLDER}\n\n{BASE_INSTRUCTIONS}")
+        };
+
         Some(ModelMessages {
-            instructions_template: Some(format!(
-                "{DEFAULT_PERSONALITY_HEADER}\n\n{PERSONALITY_PLACEHOLDER}\n\n{BASE_INSTRUCTIONS}"
-            )),
+            instructions_template: Some(instructions_template),
             instructions_variables: Some(ModelInstructionsVariables {
                 personality_default: Some(String::new()),
                 personality_friendly: Some(LOCAL_FRIENDLY_TEMPLATE.to_string()),
@@ -141,7 +150,27 @@ fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
 }
 
 fn is_goblins_managed_model(slug: &str) -> bool {
-    matches!(slug, "gpt-5.5" | "gpt-5.2-codex" | "exp-codex-personality")
+    let slug = slug.split_once('/').map_or(slug, |(_, suffix)| suffix);
+    const MANAGED_MODEL_SLUGS: &[&str] = &[
+        "gpt-5.5",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "gpt-5.3-codex",
+        "gpt-5.2",
+        "gpt-5.2-codex",
+        "exp-codex-personality",
+        "codex-auto-review",
+    ];
+    for managed_slug in MANAGED_MODEL_SLUGS {
+        if slug == *managed_slug
+            || slug
+                .strip_prefix(managed_slug)
+                .is_some_and(|suffix| suffix.starts_with('-'))
+        {
+            return true;
+        }
+    }
+    false
 }
 
 #[cfg(test)]
