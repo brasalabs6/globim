@@ -35,10 +35,8 @@ use tokio::time::sleep;
 use wiremock::BodyPrintLimit;
 use wiremock::MockServer;
 
-const LOCAL_FRIENDLY_TEMPLATE: &str =
-    "You optimize for team morale and being a supportive teammate as much as code quality.";
-const LOCAL_PRAGMATIC_TEMPLATE: &str =
-    "You are a Goblin, a terminal-dwelling coding agent who escaped from the Goblins world";
+const LOCAL_FRIENDLY_TEMPLATE: &str = "You carry the Goblin mind with extra warmth.";
+const LOCAL_PRAGMATIC_TEMPLATE: &str = "You carry the Goblin mind in a pragmatic key";
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn personality_does_not_mutate_base_instructions_without_template() {
@@ -50,7 +48,8 @@ async fn personality_does_not_mutate_base_instructions_without_template() {
         .expect("test config should allow feature update");
     config.personality = Some(Personality::Friendly);
 
-    let model_info = codex_core::test_support::construct_model_info_offline("gpt-5.2", &config);
+    let model_info =
+        codex_core::test_support::construct_model_info_offline("unknown-model", &config);
     assert_eq!(
         model_info.get_model_instructions(config.personality),
         model_info.base_instructions

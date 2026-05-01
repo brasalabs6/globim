@@ -8,6 +8,14 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 
+exports_files(
+    [
+        "templates/personalities/gpt-5.2-codex_friendly.md",
+        "templates/personalities/gpt-5.2-codex_pragmatic.md",
+    ],
+    visibility = ["//codex-rs/models-manager:__pkg__"],
+)
+
 codex_rust_crate(
     name = "core",
     crate_name = "codex_core",
