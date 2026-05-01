@@ -25,13 +25,6 @@ CODEX_PLATFORM_PACKAGES: dict[str, dict[str, str]] = {
         "os": "linux",
         "cpu": "x64",
     },
-    "@brasalabs/goblins-linux-arm64": {
-        "npm_name": "@brasalabs/goblins-linux-arm64",
-        "npm_tag": "linux-arm64",
-        "target_triple": "aarch64-unknown-linux-musl",
-        "os": "linux",
-        "cpu": "arm64",
-    },
     "@brasalabs/goblins-win32-x64": {
         "npm_name": "@brasalabs/goblins-win32-x64",
         "npm_tag": "win32-x64",
@@ -55,7 +48,6 @@ PACKAGE_EXPANSIONS: dict[str, list[str]] = {
 PACKAGE_NATIVE_COMPONENTS: dict[str, list[str]] = {
     CODEX_NPM_NAME: [],
     "@brasalabs/goblins-linux-x64": ["codex", "rg"],
-    "@brasalabs/goblins-linux-arm64": ["codex", "rg"],
     "@brasalabs/goblins-win32-x64": [
         "codex",
         "rg",

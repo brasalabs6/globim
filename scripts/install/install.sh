@@ -628,7 +628,8 @@ case "$(uname -m)" in
     arch="x86_64"
     ;;
   arm64 | aarch64)
-    arch="aarch64"
+    echo "Linux ARM64 release artifacts are not published yet." >&2
+    exit 1
     ;;
   *)
     echo "Unsupported architecture: $(uname -m)" >&2
@@ -636,15 +637,9 @@ case "$(uname -m)" in
     ;;
 esac
 
-if [ "$arch" = "aarch64" ]; then
-  npm_tag="linux-arm64"
-  vendor_target="aarch64-unknown-linux-musl"
-  platform_label="Linux (ARM64)"
-else
-  npm_tag="linux-x64"
-  vendor_target="x86_64-unknown-linux-musl"
-  platform_label="Linux (x64)"
-fi
+npm_tag="linux-x64"
+vendor_target="x86_64-unknown-linux-musl"
+platform_label="Linux (x64)"
 
 resolved_version="$(resolve_version)"
 asset="goblins-npm-$npm_tag-$resolved_version.tgz"
