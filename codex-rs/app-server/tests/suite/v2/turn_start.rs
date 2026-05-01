@@ -80,7 +80,7 @@ const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs
 #[cfg(not(windows))]
 const DEFAULT_READ_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 const TEST_ORIGINATOR: &str = "codex_vscode";
-const LOCAL_PRAGMATIC_TEMPLATE: &str = "You are a deeply pragmatic, effective software engineer.";
+const LOCAL_PRAGMATIC_TEMPLATE: &str = "You carry the Goblin mind in a pragmatic key";
 const INVALID_REQUEST_ERROR_CODE: i64 = -32600;
 
 fn body_contains(req: &wiremock::Request, text: &str) -> bool {
