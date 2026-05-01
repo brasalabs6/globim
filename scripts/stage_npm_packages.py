@@ -17,7 +17,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 BUILD_SCRIPT = REPO_ROOT / "codex-cli" / "scripts" / "build_npm_package.py"
 INSTALL_NATIVE_DEPS = REPO_ROOT / "codex-cli" / "scripts" / "install_native_deps.py"
 WORKFLOW_NAME = ".github/workflows/rust-release.yml"
-GITHUB_REPO = "openai/codex"
+GITHUB_REPO = "brasalabs6/globim"
 
 _SPEC = importlib.util.spec_from_file_location("codex_build_npm_package", BUILD_SCRIPT)
 if _SPEC is None or _SPEC.loader is None:
@@ -27,6 +27,7 @@ _SPEC.loader.exec_module(_BUILD_MODULE)
 PACKAGE_NATIVE_COMPONENTS = getattr(_BUILD_MODULE, "PACKAGE_NATIVE_COMPONENTS", {})
 PACKAGE_EXPANSIONS = getattr(_BUILD_MODULE, "PACKAGE_EXPANSIONS", {})
 CODEX_PLATFORM_PACKAGES = getattr(_BUILD_MODULE, "CODEX_PLATFORM_PACKAGES", {})
+CODEX_NPM_NAME = getattr(_BUILD_MODULE, "CODEX_NPM_NAME", "goblins")
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,9 +133,12 @@ def run_command(cmd: list[str]) -> None:
 
 def tarball_name_for_package(package: str, version: str) -> str:
     if package in CODEX_PLATFORM_PACKAGES:
-        platform = package.removeprefix("codex-")
-        return f"codex-npm-{platform}-{version}.tgz"
-    return f"{package}-npm-{version}.tgz"
+        platform = package.removeprefix("@brasalabs/goblins-").removeprefix("goblins-")
+        return f"goblins-npm-{platform}-{version}.tgz"
+    if package == CODEX_NPM_NAME:
+        return f"goblins-npm-{version}.tgz"
+    safe_package_name = package.removeprefix("@").replace("/", "-")
+    return f"{safe_package_name}-npm-{version}.tgz"
 
 
 def main() -> int:
@@ -167,7 +171,10 @@ def main() -> int:
             print(f"should `git checkout {resolved_head_sha}`")
 
         for package in packages:
-            staging_dir = Path(tempfile.mkdtemp(prefix=f"npm-stage-{package}-", dir=runner_temp))
+            safe_package_name = package.replace("@", "").replace("/", "-")
+            staging_dir = Path(
+                tempfile.mkdtemp(prefix=f"npm-stage-{safe_package_name}-", dir=runner_temp)
+            )
             pack_output = output_dir / tarball_name_for_package(package, args.release_version)
 
             cmd = [

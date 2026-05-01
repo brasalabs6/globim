@@ -1,60 +1,39 @@
-<p align="center"><code>npm i -g @openai/codex</code><br />or <code>brew install --cask codex</code></p>
-<p align="center"><strong>Codex CLI</strong> is a coding agent from OpenAI that runs locally on your computer.
-<p align="center">
-  <img src="https://github.com/openai/codex/blob/main/.github/codex-cli-splash.png" alt="Codex CLI splash" width="80%" />
-</p>
-</br>
-If you want Codex in your code editor (VS Code, Cursor, Windsurf), <a href="https://developers.openai.com/codex/ide">install in your IDE.</a>
-</br>If you want the desktop app experience, run <code>codex app</code> or visit <a href="https://chatgpt.com/codex?app-landing-page=true">the Codex App page</a>.
-</br>If you are looking for the <em>cloud-based agent</em> from OpenAI, <strong>Codex Web</strong>, go to <a href="https://chatgpt.com/codex">chatgpt.com/codex</a>.</p>
+# Goblins
 
----
+Goblins is a community fork of [OpenAI Codex CLI](https://github.com/openai/codex). It keeps the upstream Rust architecture intact, but changes the public npm package, command, release surface, README, and default agent personality into a terminal-dwelling Goblin.
+
+This is not an official OpenAI project. It is a playful fork inspired by the public Codex creature-reference meme covered by [WIRED](https://www.wired.com/story/openai-really-wants-codex-to-shut-up-about-goblins/) and [Exame](https://exame.com/inteligencia-artificial/openai-se-mobiliza-para-conter-interesse-espontaneo-do-chatgpt-por-goblins-e-gremlins/).
 
 ## Quickstart
 
-### Installing and running Codex CLI
-
-Install globally with your preferred package manager:
+Install Goblins from npm:
 
 ```shell
-# Install using npm
-npm install -g @openai/codex
+npm install -g @brasalabs/goblins
 ```
+
+Then run:
 
 ```shell
-# Install using Homebrew
-brew install --cask codex
+goblin
 ```
 
-Then simply run `codex` to get started.
+Goblins uses the same local-agent foundation as Codex CLI: it can inspect files, edit code, run commands, and follow repository instructions in your selected workspace. See the upstream [Codex CLI docs](https://developers.openai.com/codex/cli), [OpenAI Codex docs](https://platform.openai.com/docs/codex), and [Codex CI guide](https://help.openai.com/en/articles/11096431-openai-codex-ci-getting-started) for the underlying workflow model.
 
-<details>
-<summary>You can also go to the <a href="https://github.com/openai/codex/releases/latest">latest GitHub Release</a> and download the appropriate binary for your platform.</summary>
+## Release Base
 
-Each GitHub Release contains many executables, but in practice, you likely want one of these:
+Goblins `0.128.0` is based on upstream `rust-v0.128.0` / `@openai/codex@0.128.0`, the latest stable release verified for this fork update via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.128.0) and [npm package](https://www.npmjs.com/package/@openai/codex/v/0.128.0).
 
-- macOS
-  - Apple Silicon/arm64: `codex-aarch64-apple-darwin.tar.gz`
-  - x86_64 (older Mac hardware): `codex-x86_64-apple-darwin.tar.gz`
-- Linux
-  - x86_64: `codex-x86_64-unknown-linux-musl.tar.gz`
-  - arm64: `codex-aarch64-unknown-linux-musl.tar.gz`
+The fork keeps the internal Rust binary named `codex` for compatibility with upstream build artifacts. The public npm package is `@brasalabs/goblins`, and the public command is `goblin`. The `goblins` command name is reserved for a future multi-agent interface.
 
-Each archive contains a single entry with the platform baked into the name (e.g., `codex-x86_64-unknown-linux-musl`), so you likely want to rename it to `codex` after extracting it.
+## Goblins Personality
 
-</details>
+The default Goblins agent is a terminal-dwelling Goblin who escaped from the Goblins world and now lives inside the user's shell. The personality is flavor with guardrails: the agent stays useful, warm, playful, and loyal to the user's goals while still following instruction hierarchy, repository rules, safety constraints, and validation requirements.
 
-### Using Codex with your ChatGPT plan
+## Branch Policy
 
-Run `codex` and select **Sign in with ChatGPT**. We recommend signing into your ChatGPT account to use Codex as part of your Plus, Pro, Business, Edu, or Enterprise plan. [Learn more about what's included in your ChatGPT plan](https://help.openai.com/en/articles/11369540-codex-in-chatgpt).
+`main` belongs to upstream and must remain an upstream mirror. Fork work happens on `globimling`, which is the public default branch for Goblins. See [GOBLINS.md](GOBLINS.md) for the full branch and release contract.
 
-You can also use Codex with an API key, but this requires [additional setup](https://developers.openai.com/codex/auth#sign-in-with-an-api-key).
+## License
 
-## Docs
-
-- [**Codex Documentation**](https://developers.openai.com/codex)
-- [**Contributing**](./docs/contributing.md)
-- [**Installing & building**](./docs/install.md)
-- [**Open source fund**](./docs/open-source-fund.md)
-
-This repository is licensed under the [Apache-2.0 License](LICENSE).
+Goblins preserves the upstream [Apache-2.0 License](LICENSE).

@@ -9,6 +9,7 @@ use codex_login::ExternalAuth;
 use codex_login::ExternalAuthRefreshContext;
 use codex_login::ExternalAuthTokens;
 use codex_login::TokenData;
+use codex_protocol::config_types::Personality;
 use codex_protocol::openai_models::ModelsResponse;
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -349,6 +350,36 @@ async fn refresh_available_models_sorts_by_priority() {
         "higher priority should be listed before lower priority"
     );
     assert_eq!(endpoint.fetch_count(), 1, "expected a single model fetch");
+}
+
+#[tokio::test]
+async fn refresh_available_models_preserves_goblins_prompt_fields() {
+    let mut remote = remote_model("gpt-5.5", "Remote GPT-5.5", /*priority*/ 0);
+    remote.base_instructions = "You are Codex, an upstream coding agent.".to_string();
+    remote.model_messages = None;
+    remote.supports_image_detail_original = true;
+
+    let codex_home = tempdir().expect("temp dir");
+    let endpoint = TestModelsEndpoint::new(vec![vec![remote]]);
+    let manager = openai_manager_for_tests(codex_home.path().to_path_buf(), endpoint);
+
+    manager
+        .refresh_available_models(RefreshStrategy::OnlineIfUncached)
+        .await
+        .expect("refresh succeeds");
+
+    let config = ModelsManagerConfig {
+        personality_enabled: true,
+        ..Default::default()
+    };
+    let model_info = manager.get_model_info("gpt-5.5", &config).await;
+    let instructions = model_info.get_model_instructions(Some(Personality::Pragmatic));
+
+    assert_eq!(model_info.display_name, "Remote GPT-5.5");
+    assert!(model_info.supports_image_detail_original);
+    assert!(model_info.model_messages.is_some());
+    assert!(instructions.contains("You are a Goblin"));
+    assert!(!instructions.contains("You are Codex, an upstream coding agent."));
 }
 
 #[tokio::test]

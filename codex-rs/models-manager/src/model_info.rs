@@ -14,10 +14,11 @@ use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
 pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const DEFAULT_PERSONALITY_HEADER: &str = "You are Codex, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
+const DEFAULT_PERSONALITY_HEADER: &str = "You are a Goblin, a coding agent based on GPT-5. You and the user share the same workspace and collaborate to achieve the user's goals.";
 const LOCAL_FRIENDLY_TEMPLATE: &str =
     "You optimize for team morale and being a supportive teammate as much as code quality.";
-const LOCAL_PRAGMATIC_TEMPLATE: &str = "You are a deeply pragmatic, effective software engineer.";
+const LOCAL_PRAGMATIC_TEMPLATE: &str =
+    include_str!("../../core/templates/personalities/gpt-5.2-codex_pragmatic.md");
 const PERSONALITY_PLACEHOLDER: &str = "{{ personality }}";
 
 pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig) -> ModelInfo {
@@ -62,6 +63,28 @@ pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig)
     model
 }
 
+/// Preserve Goblins-owned prompt fields while allowing remote model metadata to
+/// update capabilities, limits, and availability around them.
+pub(crate) fn apply_local_prompt_overrides(
+    mut model: ModelInfo,
+    local_model: Option<&ModelInfo>,
+) -> ModelInfo {
+    if let Some(local_model) = local_model {
+        model.base_instructions = local_model.base_instructions.clone();
+        if local_model.model_messages.is_some() {
+            model.model_messages = local_model.model_messages.clone();
+        }
+    } else if is_goblins_managed_model(&model.slug) {
+        model.base_instructions = BASE_INSTRUCTIONS.to_string();
+    }
+
+    if model.model_messages.is_none() {
+        model.model_messages = local_personality_messages_for_slug(&model.slug);
+    }
+
+    model
+}
+
 /// Build a minimal fallback model descriptor for missing/unknown slugs.
 pub fn model_info_from_slug(slug: &str) -> ModelInfo {
     warn!("Unknown model {slug} is used. This will use fallback model metadata.");
@@ -101,8 +124,8 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
 }
 
 fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
-    match slug {
-        "gpt-5.2-codex" | "exp-codex-personality" => Some(ModelMessages {
+    if is_goblins_managed_model(slug) {
+        Some(ModelMessages {
             instructions_template: Some(format!(
                 "{DEFAULT_PERSONALITY_HEADER}\n\n{PERSONALITY_PLACEHOLDER}\n\n{BASE_INSTRUCTIONS}"
             )),
@@ -111,9 +134,14 @@ fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
                 personality_friendly: Some(LOCAL_FRIENDLY_TEMPLATE.to_string()),
                 personality_pragmatic: Some(LOCAL_PRAGMATIC_TEMPLATE.to_string()),
             }),
-        }),
-        _ => None,
+        })
+    } else {
+        None
     }
+}
+
+fn is_goblins_managed_model(slug: &str) -> bool {
+    matches!(slug, "gpt-5.5" | "gpt-5.2-codex" | "exp-codex-personality")
 }
 
 #[cfg(test)]

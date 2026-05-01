@@ -5,7 +5,7 @@ set -eu
 RELEASE="latest"
 
 BIN_DIR="${CODEX_INSTALL_DIR:-$HOME/.local/bin}"
-BIN_PATH="$BIN_DIR/codex"
+BIN_PATH="$BIN_DIR/goblin"
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 STANDALONE_ROOT="$CODEX_HOME_DIR/packages/standalone"
 RELEASES_DIR="$STANDALONE_ROOT/releases"
@@ -111,13 +111,13 @@ release_url_for_asset() {
   asset="$1"
   resolved_version="$2"
 
-  printf 'https://github.com/openai/codex/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
+  printf 'https://github.com/brasalabs6/globim/releases/download/rust-v%s/%s\n' "$resolved_version" "$asset"
 }
 
 release_metadata_url() {
   resolved_version="$1"
 
-  printf 'https://api.github.com/repos/openai/codex/releases/tags/rust-v%s\n' "$resolved_version"
+  printf 'https://api.github.com/repos/brasalabs6/globim/releases/tags/rust-v%s\n' "$resolved_version"
 }
 
 release_asset_digest() {
@@ -215,7 +215,7 @@ resolve_version() {
     return
   fi
 
-  release_json="$(download_text "https://api.github.com/repos/openai/codex/releases/latest")"
+  release_json="$(download_text "https://api.github.com/repos/brasalabs6/globim/releases/latest")"
   resolved="$(printf '%s\n' "$release_json" | sed -n 's/.*"tag_name":[[:space:]]*"rust-v\([^"]*\)".*/\1/p' | head -n 1)"
 
   if [ -z "$resolved" ]; then
@@ -227,15 +227,7 @@ resolve_version() {
 }
 
 pick_profile() {
-  # Use the same shell-specific split Homebrew documents because there is no
-  # universal startup file across macOS/Linux login and interactive shells.
   case "$os:${SHELL:-}" in
-    darwin:*/zsh)
-      printf '%s\n' "$HOME/.zprofile"
-      ;;
-    darwin:*/bash)
-      printf '%s\n' "$HOME/.bash_profile"
-      ;;
     linux:*/zsh)
       printf '%s\n' "$HOME/.zshrc"
       ;;
@@ -361,14 +353,6 @@ mkdir_lock_is_stale() {
 acquire_install_lock() {
   mkdir -p "$STANDALONE_ROOT"
 
-  if [ "$os" = "darwin" ] && command -v lockf >/dev/null 2>&1; then
-    : >>"$LOCK_FILE"
-    exec 9<>"$LOCK_FILE"
-    lockf 9
-    lock_kind="lockf"
-    return
-  fi
-
   if command -v flock >/dev/null 2>&1; then
     exec 9>"$LOCK_FILE"
     flock 9
@@ -393,7 +377,7 @@ acquire_install_lock() {
 release_install_lock() {
   if [ "$lock_kind" = "mkdir" ]; then
     rm -rf "$LOCK_DIR" 2>/dev/null || true
-  elif [ "$lock_kind" = "flock" ] || [ "$lock_kind" = "lockf" ]; then
+  elif [ "$lock_kind" = "flock" ]; then
     exec 9>&- 2>/dev/null || true
   fi
   lock_kind=""
@@ -451,7 +435,7 @@ current_installed_version() {
 }
 
 resolve_existing_codex() {
-  command -v codex 2>/dev/null || true
+  command -v goblin 2>/dev/null || true
 }
 
 classify_existing_codex() {
@@ -460,15 +444,6 @@ classify_existing_codex() {
   if [ -z "$existing_path" ] || [ "$existing_path" = "$BIN_PATH" ]; then
     return 1
   fi
-
-  case "$existing_path" in
-    /opt/homebrew/* | /usr/local/*)
-      if [ "$os" = "darwin" ]; then
-        printf 'brew\n'
-        return 0
-      fi
-      ;;
-  esac
 
   if [ -f "$existing_path" ] && grep -F "#!/usr/bin/env node" "$existing_path" >/dev/null 2>&1; then
     case "$existing_path" in
@@ -515,30 +490,30 @@ prompt_yes_no() {
 print_launch_instructions() {
   case "$path_action" in
     added)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH was added to $path_profile"
       ;;
     updated)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH was updated in $path_profile"
       ;;
     configured)
-      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: export PATH=\"$BIN_DIR:\$PATH\" && goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       step "PATH is already configured in $path_profile"
       ;;
     *)
-      step "Current terminal: codex"
-      step "Future terminals: open a new terminal and run: codex"
+      step "Current terminal: goblin"
+      step "Future terminals: open a new terminal and run: goblin"
       ;;
   esac
 }
 
 maybe_launch_codex_now() {
-  if prompt_yes_no "Start Codex now?"; then
-    step "Launching Codex"
+  if prompt_yes_no "Start Goblins now?"; then
+    step "Launching Goblins"
     "$BIN_PATH"
   fi
 }
@@ -553,8 +528,8 @@ detect_conflicting_install() {
 
   conflict_manager="$manager"
   conflict_path="$existing_path"
-  step "Detected existing $manager-managed Codex at $existing_path"
-  warn "Multiple managed Codex installs can be ambiguous because PATH order decides which one runs."
+  step "Detected existing $manager-managed Goblins at $existing_path"
+  warn "Multiple managed Goblins installs can be ambiguous because PATH order decides which goblin runs."
 }
 
 handle_conflicting_install() {
@@ -563,24 +538,21 @@ handle_conflicting_install() {
   fi
 
   case "$conflict_manager" in
-    brew)
-      uninstall_cmd="brew uninstall --cask codex"
-      ;;
     bun)
-      uninstall_cmd="bun remove -g @openai/codex"
+      uninstall_cmd="bun remove -g @brasalabs/goblins"
       ;;
     *)
-      uninstall_cmd="npm uninstall -g @openai/codex"
+      uninstall_cmd="npm uninstall -g @brasalabs/goblins"
       ;;
   esac
 
-  if prompt_yes_no "Uninstall the existing $conflict_manager-managed Codex now?"; then
+  if prompt_yes_no "Uninstall the existing $conflict_manager-managed Goblins now?"; then
     step "Running: $uninstall_cmd"
     if ! sh -c "$uninstall_cmd"; then
-      warn "Failed to uninstall the existing $conflict_manager-managed Codex. Continuing with the standalone install."
+      warn "Failed to uninstall the existing $conflict_manager-managed Goblins. Continuing with the standalone install."
     fi
   else
-    warn "Leaving the existing $conflict_manager-managed Codex installed. PATH order will determine which codex runs."
+    warn "Leaving the existing $conflict_manager-managed Goblins installed. PATH order will determine which goblin runs."
   fi
 }
 
@@ -639,13 +611,14 @@ require_command tar
 
 case "$(uname -s)" in
   Darwin)
-    os="darwin"
+    echo "install.sh currently supports Linux only. Use npm install -g @brasalabs/goblins for npm-managed installs." >&2
+    exit 1
     ;;
   Linux)
     os="linux"
     ;;
   *)
-    echo "install.sh supports macOS and Linux. Use install.ps1 on Windows." >&2
+    echo "install.sh supports Linux. Use install.ps1 on Windows." >&2
     exit 1
     ;;
 esac
@@ -663,47 +636,29 @@ case "$(uname -m)" in
     ;;
 esac
 
-if [ "$os" = "darwin" ] && [ "$arch" = "x86_64" ]; then
-  if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = "1" ]; then
-    arch="aarch64"
-  fi
-fi
-
-if [ "$os" = "darwin" ]; then
-  if [ "$arch" = "aarch64" ]; then
-    npm_tag="darwin-arm64"
-    vendor_target="aarch64-apple-darwin"
-    platform_label="macOS (Apple Silicon)"
-  else
-    npm_tag="darwin-x64"
-    vendor_target="x86_64-apple-darwin"
-    platform_label="macOS (Intel)"
-  fi
+if [ "$arch" = "aarch64" ]; then
+  npm_tag="linux-arm64"
+  vendor_target="aarch64-unknown-linux-musl"
+  platform_label="Linux (ARM64)"
 else
-  if [ "$arch" = "aarch64" ]; then
-    npm_tag="linux-arm64"
-    vendor_target="aarch64-unknown-linux-musl"
-    platform_label="Linux (ARM64)"
-  else
-    npm_tag="linux-x64"
-    vendor_target="x86_64-unknown-linux-musl"
-    platform_label="Linux (x64)"
-  fi
+  npm_tag="linux-x64"
+  vendor_target="x86_64-unknown-linux-musl"
+  platform_label="Linux (x64)"
 fi
 
 resolved_version="$(resolve_version)"
-asset="codex-npm-$npm_tag-$resolved_version.tgz"
+asset="goblins-npm-$npm_tag-$resolved_version.tgz"
 download_url="$(release_url_for_asset "$asset" "$resolved_version")"
 release_name="$resolved_version-$vendor_target"
 release_dir="$RELEASES_DIR/$release_name"
 current_version="$(current_installed_version)"
 
 if [ -n "$current_version" ] && [ "$current_version" != "$resolved_version" ]; then
-  step "Updating Codex CLI from $current_version to $resolved_version"
+  step "Updating Goblins CLI from $current_version to $resolved_version"
 elif [ -n "$current_version" ]; then
-  step "Updating Codex CLI"
+  step "Updating Goblins CLI"
 else
-  step "Installing Codex CLI"
+  step "Installing Goblins CLI"
 fi
 step "Detected platform: $platform_label"
 step "Resolved version: $resolved_version"
@@ -730,7 +685,7 @@ if ! release_dir_is_complete "$release_dir" "$resolved_version" "$vendor_target"
   archive_path="$tmp_dir/$asset"
   extract_dir="$tmp_dir/extract"
 
-  step "Downloading Codex CLI"
+  step "Downloading Goblins CLI"
   expected_digest="$(release_asset_digest "$asset" "$resolved_version")"
   download_file "$download_url" "$archive_path"
   verify_archive_digest "$archive_path" "$expected_digest"
@@ -764,5 +719,5 @@ case "$path_action" in
     ;;
 esac
 
-printf 'Codex CLI %s installed successfully.\n' "$resolved_version"
+printf 'Goblins CLI %s installed successfully.\n' "$resolved_version"
 maybe_launch_codex_now
