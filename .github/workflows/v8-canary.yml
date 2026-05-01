@@ -3,6 +3,7 @@ name: v8-canary
 on:
   pull_request:
     paths:
+      - ".github/actions/setup-bazel-ci/**"
       - ".github/scripts/rusty_v8_bazel.py"
       - ".github/workflows/rusty-v8-release.yml"
       - ".github/workflows/v8-canary.yml"
@@ -16,6 +17,7 @@ on:
     branches:
       - main
     paths:
+      - ".github/actions/setup-bazel-ci/**"
       - ".github/scripts/rusty_v8_bazel.py"
       - ".github/workflows/rusty-v8-release.yml"
       - ".github/workflows/v8-canary.yml"
@@ -67,22 +69,35 @@ jobs:
           - runner: ubuntu-24.04
             platform: linux_amd64_musl
             target: x86_64-unknown-linux-musl
-          - runner: ubuntu-24.04-arm
-            platform: linux_arm64_musl
-            target: aarch64-unknown-linux-musl
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up Bazel
-        uses: bazelbuild/setup-bazelisk@b39c379c82683a5f25d34f0d062761f62693e0b2 # v3
+        uses: ./.github/actions/setup-bazel-ci
+        with:
+          target: ${{ matrix.target }}
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.12"
 
+      - name: Check BuildBuddy credentials
+        id: buildbuddy
+        env:
+          BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
+        shell: bash
+        run: |
+          if [[ -n "${BUILDBUDDY_API_KEY}" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "BuildBuddy API key is unavailable; skipping V8 canary build on this fork."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build Bazel V8 release pair
+        if: ${{ steps.buildbuddy.outputs.available == 'true' }}
         env:
           BUILDBUDDY_API_KEY: ${{ secrets.BUILDBUDDY_API_KEY }}
           PLATFORM: ${{ matrix.platform }}
@@ -113,6 +128,7 @@ jobs:
             "--remote_header=x-buildbuddy-api-key=${BUILDBUDDY_API_KEY}"
 
       - name: Stage release pair
+        if: ${{ steps.buildbuddy.outputs.available == 'true' }}
         env:
           PLATFORM: ${{ matrix.platform }}
           TARGET: ${{ matrix.target }}
@@ -126,6 +142,7 @@ jobs:
             --output-dir "dist/${TARGET}"
 
       - name: Upload staged musl artifacts
+        if: ${{ steps.buildbuddy.outputs.available == 'true' }}
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: v8-canary-${{ needs.metadata.outputs.v8_version }}-${{ matrix.target }}

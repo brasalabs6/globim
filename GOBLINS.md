@@ -11,6 +11,7 @@
 
 - Goblins releases start from the latest stable upstream `rust-v*` release unless a maintainer explicitly chooses an alpha, beta, or development snapshot.
 - The first Goblins release is `0.125.1`, based on upstream `rust-v0.125.0` / npm `@openai/codex@0.125.0`.
+- The current upgrade target is `0.128.0`, based on upstream `rust-v0.128.0` / npm `@openai/codex@0.128.0`.
 - Release tags use the upstream-compatible `rust-v*.*.*` format. The first fork tag is `rust-v0.125.1`.
 
 ## Public Surface
@@ -18,7 +19,7 @@
 - The public npm package is `@brasalabs/goblins`.
 - The public CLI command is `goblin`.
 - The `goblins` command is reserved for a future multi-agent interface.
-- Platform packages use scoped names: `@brasalabs/goblins-linux-x64`, `@brasalabs/goblins-win32-x64`, and `@brasalabs/goblins-win32-arm64`.
+- Platform packages use scoped names: `@brasalabs/goblins-linux-x64` and `@brasalabs/goblins-win32-x64`.
 - The internal Rust binary may remain named `codex` to reduce fork drift and keep upstream build wiring simple.
 
 ## Prompt Contract

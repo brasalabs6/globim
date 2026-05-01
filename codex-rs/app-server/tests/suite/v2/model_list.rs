@@ -45,11 +45,7 @@ fn model_from_preset(preset: &ModelPreset) -> Model {
             .collect(),
         default_reasoning_effort: preset.default_reasoning_effort,
         input_modalities: preset.input_modalities.clone(),
-        // `write_models_cache()` round-trips through a simplified ModelInfo fixture that does not
-        // preserve personality placeholders in base instructions, so app-server list results from
-        // cache report `supports_personality = false`.
-        // todo(sayan): fix, maybe make roundtrip use ModelInfo only
-        supports_personality: false,
+        supports_personality: preset.supports_personality,
         additional_speed_tiers: preset.additional_speed_tiers.clone(),
         is_default: preset.is_default,
     }
@@ -70,6 +66,15 @@ fn expected_visible_models() -> Vec<Model> {
         .filter(|preset| preset.show_in_picker)
         .map(model_from_preset)
         .collect()
+}
+
+fn normalize_personality_support(mut models: Vec<Model>) -> Vec<Model> {
+    // The test cache writes simplified ModelInfo values without model_messages.
+    // Keep these list/pagination assertions focused on ordering and pagination.
+    for model in &mut models {
+        model.supports_personality = false;
+    }
+    models
 }
 
 #[tokio::test]
@@ -101,7 +106,10 @@ async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
 
     let expected_models = expected_visible_models();
 
-    assert_eq!(items, expected_models);
+    assert_eq!(
+        normalize_personality_support(items),
+        normalize_personality_support(expected_models)
+    );
     assert!(next_cursor.is_none());
     Ok(())
 }
@@ -176,7 +184,10 @@ async fn list_models_pagination_works() -> Result<()> {
         if let Some(next_cursor) = next_cursor {
             cursor = Some(next_cursor);
         } else {
-            assert_eq!(items, expected_models);
+            assert_eq!(
+                normalize_personality_support(items),
+                normalize_personality_support(expected_models)
+            );
             return Ok(());
         }
     }

@@ -26,7 +26,6 @@ RG_MANIFEST = CODEX_CLI_ROOT / "bin" / "rg"
 BINARY_TARGETS = (
     "x86_64-unknown-linux-musl",
     "x86_64-pc-windows-msvc",
-    "aarch64-pc-windows-msvc",
 )
 
 
@@ -68,7 +67,6 @@ BINARY_COMPONENTS = {
 RG_TARGET_PLATFORM_PAIRS: list[tuple[str, str]] = [
     ("x86_64-unknown-linux-musl", "linux-x86_64"),
     ("x86_64-pc-windows-msvc", "windows-x86_64"),
-    ("aarch64-pc-windows-msvc", "windows-aarch64"),
 ]
 RG_TARGET_TO_PLATFORM = {target: platform for target, platform in RG_TARGET_PLATFORM_PAIRS}
 DEFAULT_RG_TARGETS = [target for target, _ in RG_TARGET_PLATFORM_PAIRS]
