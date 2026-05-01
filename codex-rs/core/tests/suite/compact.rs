@@ -1775,6 +1775,7 @@ async fn pre_sampling_compact_runs_on_switch_to_smaller_context_model() {
         .with_config(move |config| {
             config.model_provider = model_provider;
             set_test_compact_prompt(config);
+            let _ = config.features.disable(Feature::Personality);
         });
     let test = builder.build(&server).await.expect("build test codex");
 

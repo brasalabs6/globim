@@ -68,6 +68,15 @@ fn expected_visible_models() -> Vec<Model> {
         .collect()
 }
 
+fn normalize_personality_support(mut models: Vec<Model>) -> Vec<Model> {
+    // The test cache writes simplified ModelInfo values without model_messages.
+    // Keep these list/pagination assertions focused on ordering and pagination.
+    for model in &mut models {
+        model.supports_personality = false;
+    }
+    models
+}
+
 #[tokio::test]
 async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
     let codex_home = TempDir::new()?;
@@ -97,7 +106,10 @@ async fn list_models_returns_all_models_with_large_limit() -> Result<()> {
 
     let expected_models = expected_visible_models();
 
-    assert_eq!(items, expected_models);
+    assert_eq!(
+        normalize_personality_support(items),
+        normalize_personality_support(expected_models)
+    );
     assert!(next_cursor.is_none());
     Ok(())
 }
@@ -172,7 +184,10 @@ async fn list_models_pagination_works() -> Result<()> {
         if let Some(next_cursor) = next_cursor {
             cursor = Some(next_cursor);
         } else {
-            assert_eq!(items, expected_models);
+            assert_eq!(
+                normalize_personality_support(items),
+                normalize_personality_support(expected_models)
+            );
             return Ok(());
         }
     }
