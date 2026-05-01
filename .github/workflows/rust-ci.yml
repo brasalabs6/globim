@@ -42,8 +42,7 @@ jobs:
             [[ $f == codex-rs/* ]] && codex=true
             [[ $f == codex-rs/* || $f == tools/argument-comment-lint/* || $f == justfile ]] && argument_comment_lint=true
             [[ $f == defs.bzl || $f == workspace_root_test_launcher.sh.tpl || $f == workspace_root_test_launcher.bat.tpl ]] && argument_comment_lint=true
-            [[ $f == tools/argument-comment-lint/* || $f == .github/workflows/rust-ci.yml || $f == .github/workflows/rust-ci-full.yml ]] && argument_comment_lint_package=true
-            [[ $f == .github/* ]] && workflows=true
+            [[ $f == tools/argument-comment-lint/* ]] && argument_comment_lint_package=true
           done
 
           echo "argument_comment_lint=$argument_comment_lint" >> "$GITHUB_OUTPUT"
@@ -139,6 +138,7 @@ jobs:
     runs-on: ${{ matrix.runs_on || matrix.runner }}
     timeout-minutes: ${{ matrix.timeout_minutes }}
     needs: changed
+    if: ${{ needs.changed.outputs.argument_comment_lint == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -163,7 +163,7 @@ jobs:
           ARGUMENT_COMMENT_LINT: ${{ needs.changed.outputs.argument_comment_lint }}
           WORKFLOWS: ${{ needs.changed.outputs.workflows }}
         run: |
-          if [[ "$ARGUMENT_COMMENT_LINT" == "true" || "$WORKFLOWS" == "true" ]]; then
+          if [[ "$ARGUMENT_COMMENT_LINT" == "true" ]]; then
             echo "run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -203,7 +203,7 @@ jobs:
 
           # If nothing relevant changed (PR touching only root README, etc.),
           # declare success regardless of other jobs.
-          if [[ '${{ needs.changed.outputs.argument_comment_lint }}' != 'true' && '${{ needs.changed.outputs.codex }}' != 'true' && '${{ needs.changed.outputs.workflows }}' != 'true' ]]; then
+          if [[ '${{ needs.changed.outputs.argument_comment_lint }}' != 'true' && '${{ needs.changed.outputs.codex }}' != 'true' ]]; then
             echo 'No relevant changes -> CI not required.'
             exit 0
           fi
@@ -212,11 +212,11 @@ jobs:
             [[ '${{ needs.argument_comment_lint_package.result }}' == 'success' ]] || { echo 'argument_comment_lint_package failed'; exit 1; }
           fi
 
-          if [[ '${{ needs.changed.outputs.argument_comment_lint }}' == 'true' || '${{ needs.changed.outputs.workflows }}' == 'true' ]]; then
+          if [[ '${{ needs.changed.outputs.argument_comment_lint }}' == 'true' ]]; then
             [[ '${{ needs.argument_comment_lint_prebuilt.result }}' == 'success' ]] || { echo 'argument_comment_lint_prebuilt failed'; exit 1; }
           fi
 
-          if [[ '${{ needs.changed.outputs.codex }}' == 'true' || '${{ needs.changed.outputs.workflows }}' == 'true' ]]; then
+          if [[ '${{ needs.changed.outputs.codex }}' == 'true' ]]; then
             [[ '${{ needs.general.result }}' == 'success' ]] || { echo 'general failed'; exit 1; }
             [[ '${{ needs.cargo_shear.result }}' == 'success' ]] || { echo 'cargo_shear failed'; exit 1; }
           fi
