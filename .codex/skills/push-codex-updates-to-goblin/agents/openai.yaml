@@ -1,0 +1,4 @@
+interface:
+  display_name: "Push Codex Updates"
+  short_description: "Update Goblins from Codex releases"
+  default_prompt: "Use $push-codex-updates-to-goblin to update Goblins to the latest Codex CLI release."
