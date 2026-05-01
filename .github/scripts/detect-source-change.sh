@@ -32,8 +32,6 @@ is_common_source_file() {
   [[ "$file" == scripts/* ]] && return 0
   [[ "$file" == tools/* ]] && return 0
   [[ "$file" == third_party/* ]] && return 0
-  [[ "$file" == .github/actions/* ]] && return 0
-  [[ "$file" == .github/scripts/* ]] && return 0
   [[ "$file" == sdk/* ]] && return 0
   case "$file" in
     BUILD.bazel|*/BUILD.bazel|*.bzl|MODULE.bazel|MODULE.bazel.lock|.bazelrc|.bazelversion)
@@ -52,17 +50,6 @@ is_common_source_file() {
 is_mode_source_file() {
   local file="$1"
   is_common_source_file "$file" && return 0
-  case "$mode:$file" in
-    bazel:.github/workflows/bazel.yml)
-      return 0
-      ;;
-    ci:.github/workflows/ci.yml)
-      return 0
-      ;;
-    sdk:.github/workflows/sdk.yml)
-      return 0
-      ;;
-  esac
   return 1
 }
 
