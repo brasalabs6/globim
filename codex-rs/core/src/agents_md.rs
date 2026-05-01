@@ -1,7 +1,8 @@
-//! AGENTS.md discovery and user instruction assembly.
+//! Project doc discovery and user instruction assembly.
 //!
 //! Project-level documentation is primarily stored in files named `AGENTS.md`.
-//! Additional fallback filenames can be configured via `project_doc_fallback_filenames`.
+//! Globim also loads supplemental files named `GLOBIM.md`. Additional fallback
+//! filenames can be configured via `project_doc_fallback_filenames`.
 //! We include the concatenation of all files found along the path from the
 //! project root to the current working directory as follows:
 //!
@@ -10,9 +11,10 @@
 //!     When `project_root_markers` is unset, the default marker list is used
 //!     (`.git`). If no marker is found, only the current working directory is
 //!     considered. An empty marker list disables parent traversal.
-//! 2.  Collect every `AGENTS.md` found from the project root down to the
-//!     current working directory (inclusive) and concatenate their contents in
-//!     that order.
+//! 2.  Collect the primary project doc (`AGENTS.override.md`, `AGENTS.md`, or
+//!     a configured fallback) and supplemental `GLOBIM.md` file found in each
+//!     directory from the project root down to the current working directory
+//!     (inclusive), then concatenate their contents in that order.
 //! 3.  We do **not** walk past the project root.
 
 use crate::config::Config;
@@ -35,11 +37,13 @@ pub(crate) const HIERARCHICAL_AGENTS_MESSAGE: &str =
 
 /// Default filename scanned for AGENTS.md instructions.
 pub const DEFAULT_AGENTS_MD_FILENAME: &str = "AGENTS.md";
+/// Supplemental Globim-specific project doc filename.
+pub const GLOBIM_MD_FILENAME: &str = "GLOBIM.md";
 /// Preferred local override for AGENTS.md instructions.
 pub const LOCAL_AGENTS_MD_FILENAME: &str = "AGENTS.override.md";
 
-/// When both `Config::instructions` and AGENTS.md docs are present, they will
-/// be concatenated with the following separator.
+/// When both `Config::instructions` and project docs are present, they will be
+/// concatenated with the following separator.
 const AGENTS_MD_SEPARATOR: &str = "\n\n--- project-doc ---\n\n";
 
 fn render_js_repl_instructions(config: &Config) -> Option<String> {
@@ -77,7 +81,7 @@ fn render_js_repl_instructions(config: &Config) -> Option<String> {
     Some(section)
 }
 
-/// Resolves AGENTS.md files into model-visible user instructions and source
+/// Resolves project doc files into model-visible user instructions and source
 /// paths.
 pub struct AgentsMdManager<'a> {
     config: &'a Config,
@@ -85,7 +89,7 @@ pub struct AgentsMdManager<'a> {
 
 pub(crate) struct LoadedAgentsMd {
     pub(crate) contents: String,
-    pub(crate) path: AbsolutePathBuf,
+    pub(crate) paths: Vec<AbsolutePathBuf>,
 }
 
 impl<'a> AgentsMdManager<'a> {
@@ -97,22 +101,41 @@ impl<'a> AgentsMdManager<'a> {
         codex_dir: Option<&AbsolutePathBuf>,
     ) -> Option<LoadedAgentsMd> {
         let base = codex_dir?;
-        for candidate in [LOCAL_AGENTS_MD_FILENAME, DEFAULT_AGENTS_MD_FILENAME] {
-            let path = base.join(candidate);
+        let mut paths = Vec::new();
+        let mut parts = Vec::new();
+        let load = |path: AbsolutePathBuf| -> Option<(String, AbsolutePathBuf)> {
             if let Ok(contents) = std::fs::read_to_string(&path) {
                 let trimmed = contents.trim();
                 if !trimmed.is_empty() {
-                    return Some(LoadedAgentsMd {
-                        contents: trimmed.to_string(),
-                        path,
-                    });
+                    return Some((trimmed.to_string(), path));
                 }
             }
+            None
+        };
+
+        for candidate in [LOCAL_AGENTS_MD_FILENAME, DEFAULT_AGENTS_MD_FILENAME] {
+            if let Some((contents, path)) = load(base.join(candidate)) {
+                parts.push(contents);
+                paths.push(path);
+                break;
+            }
         }
-        None
+        if let Some((contents, path)) = load(base.join(GLOBIM_MD_FILENAME)) {
+            parts.push(contents);
+            paths.push(path);
+        }
+
+        if parts.is_empty() {
+            None
+        } else {
+            Some(LoadedAgentsMd {
+                contents: parts.join("\n\n"),
+                paths,
+            })
+        }
     }
 
-    /// Combines configured user instructions and AGENTS.md content into a
+    /// Combines configured user instructions and project doc content into a
     /// single model-visible instruction string.
     pub(crate) async fn user_instructions(
         &self,
@@ -143,7 +166,7 @@ impl<'a> AgentsMdManager<'a> {
             }
             Ok(None) => {}
             Err(e) => {
-                error!("error trying to find AGENTS.md docs: {e:#}");
+                error!("error trying to find project docs: {e:#}");
             }
         };
 
@@ -171,18 +194,18 @@ impl<'a> AgentsMdManager<'a> {
     /// Returns all instruction source files included in the current config.
     pub async fn instruction_sources(&self, fs: &dyn ExecutorFileSystem) -> Vec<AbsolutePathBuf> {
         let mut paths = Self::load_global_instructions(Some(&self.config.codex_home))
-            .map(|loaded| vec![loaded.path])
+            .map(|loaded| loaded.paths)
             .unwrap_or_default();
         match self.agents_md_paths(fs).await {
             Ok(agents_md_paths) => paths.extend(agents_md_paths),
             Err(err) => {
-                tracing::warn!(error = %err, "failed to discover AGENTS.md docs for instruction sources");
+                tracing::warn!(error = %err, "failed to discover project docs for instruction sources");
             }
         }
         paths
     }
 
-    /// Attempt to locate and load AGENTS.md documentation.
+    /// Attempt to locate and load project documentation.
     ///
     /// On success returns `Ok(Some(contents))` where `contents` is the
     /// concatenation of all discovered docs. If no documentation file is found
@@ -247,7 +270,7 @@ impl<'a> AgentsMdManager<'a> {
         }
     }
 
-    /// Discover the list of AGENTS.md files using the same search rules as
+    /// Discover the list of project doc files using the same search rules as
     /// `read_agents_md`, but return the file paths instead of concatenated
     /// contents. The list is ordered from project root to the current working
     /// directory (inclusive). Symlinks are allowed. When `project_doc_max_bytes`
@@ -339,6 +362,13 @@ impl<'a> AgentsMdManager<'a> {
                     Err(err) => return Err(err),
                 }
             }
+            let candidate = d.join(GLOBIM_MD_FILENAME);
+            match fs.get_metadata(&candidate, /*sandbox*/ None).await {
+                Ok(md) if md.is_file => found.push(candidate),
+                Ok(_) => {}
+                Err(err) if err.kind() == io::ErrorKind::NotFound => {}
+                Err(err) => return Err(err),
+            }
         }
 
         Ok(found)
@@ -352,6 +382,9 @@ impl<'a> AgentsMdManager<'a> {
         for candidate in &self.config.project_doc_fallback_filenames {
             let candidate = candidate.as_str();
             if candidate.is_empty() {
+                continue;
+            }
+            if candidate == GLOBIM_MD_FILENAME {
                 continue;
             }
             if !names.contains(&candidate) {
