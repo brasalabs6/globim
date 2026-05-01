@@ -591,11 +591,6 @@ $target = $null
 $platformLabel = $null
 $npmTag = $null
 switch ($architecture) {
-    "Arm64" {
-        $target = "aarch64-pc-windows-msvc"
-        $platformLabel = "Windows (ARM64)"
-        $npmTag = "win32-arm64"
-    }
     "X64" {
         $target = "x86_64-pc-windows-msvc"
         $platformLabel = "Windows (x64)"

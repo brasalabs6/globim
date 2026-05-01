@@ -19,7 +19,7 @@
 - The public npm package is `@brasalabs/goblins`.
 - The public CLI command is `goblin`.
 - The `goblins` command is reserved for a future multi-agent interface.
-- Platform packages use scoped names: `@brasalabs/goblins-linux-x64`, `@brasalabs/goblins-win32-x64`, and `@brasalabs/goblins-win32-arm64`.
+- Platform packages use scoped names: `@brasalabs/goblins-linux-x64` and `@brasalabs/goblins-win32-x64`.
 - The internal Rust binary may remain named `codex` to reduce fork drift and keep upstream build wiring simple.
 
 ## Prompt Contract
