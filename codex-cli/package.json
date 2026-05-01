@@ -1,6 +1,6 @@
 {
   "name": "@brasalabs/goblins",
-  "version": "0.125.1",
+  "version": "0.128.0",
   "license": "Apache-2.0",
   "bin": {
     "goblin": "bin/goblin.js"
