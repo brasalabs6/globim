@@ -33,10 +33,10 @@ jobs:
           [[ "${tag_ver}" == "${npm_ver}" ]] \
             || { echo "Tag ${tag_ver} does not match codex-cli/package.json ${npm_ver}"; exit 1; }
 
-          git fetch origin globimling --depth=1
+          git fetch origin goblins --depth=1
           tag_commit="$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
-          git merge-base --is-ancestor "${tag_commit}" origin/globimling \
-            || { echo "Release tags must point at commits on globimling"; exit 1; }
+          git merge-base --is-ancestor "${tag_commit}" origin/goblins \
+            || { echo "Release tags must point at commits on goblins"; exit 1; }
 
   build-unix:
     needs: tag-check
