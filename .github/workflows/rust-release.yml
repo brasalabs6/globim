@@ -384,7 +384,7 @@ jobs:
           prerelease: ${{ contains(steps.release_name.outputs.version, '-') }}
 
   publish-npm:
-    if: ${{ needs.release.outputs.should_publish_npm == 'true' }}
+    if: ${{ always() && needs.release.result == 'success' }}
     needs: release
     runs-on: ubuntu-latest
     permissions:
@@ -397,17 +397,32 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Verify npm token is configured
+        id: npm_publish_settings
         env:
+          VERSION: ${{ needs.release.outputs.version }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
+          if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=" >> "$GITHUB_OUTPUT"
+          elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=alpha" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
             echo "NPM_TOKEN is required to publish Goblins packages to npm."
             exit 1
           fi
 
       - name: Download npm tarballs from release
+        if: ${{ steps.npm_publish_settings.outputs.should_publish == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ needs.release.outputs.tag }}
@@ -422,10 +437,11 @@ jobs:
             --dir dist/npm
 
       - name: Publish to npm
+        if: ${{ steps.npm_publish_settings.outputs.should_publish == 'true' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VERSION: ${{ needs.release.outputs.version }}
-          NPM_TAG: ${{ needs.release.outputs.npm_tag }}
+          NPM_TAG: ${{ steps.npm_publish_settings.outputs.npm_tag }}
         shell: bash
         run: |
           set -euo pipefail
