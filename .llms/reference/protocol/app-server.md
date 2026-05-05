@@ -45,7 +45,8 @@ Source references:
 ## Common V2 Surfaces
 
 The v2 protocol defines thread start/resume/fork/list/read, turn start, model
-list, thread items, session sources, and collab replay items.
+list, thread items, session sources, collab replay items, external-agent config
+migration, remote-control/device-key APIs, and other app-facing surfaces.
 
 Source references:
 
@@ -97,12 +98,23 @@ Source references:
 When adding or changing an app-server API:
 
 - Prefer v2.
-- Use lower-case slash-separated RPC method names.
+- Expose methods as `<resource>/<method>` and keep the resource singular.
+  Existing v2 methods are slash-separated but not strictly lower-case; examples
+  include `thread/memoryMode/set`, `thread/shellCommand`, and `fs/readFile`.
 - Keep Rust DTO names explicit and stable.
-- Use camelCase wire fields.
+- Use camelCase wire fields unless a config API intentionally mirrors
+  `config.toml` snake_case keys.
 - Add request/response structs and notification structs as needed.
 - Add protocol macro entries and serialization scope if needed.
-- Update schema fixtures and generated TypeScript exports.
+- Add `#[ts(export_to = "v2/")]` to v2 DTOs, keep serde/TS renames aligned, and
+  do not skip serializing optional v2 response/notification fields unless the
+  API shape has an explicit compatibility reason.
+- Use `#[experimental(...)]`, `derive(ExperimentalApi)`, and `inspect_params`
+  when the method or individual fields are experimental.
+- Regenerate schema fixtures and generated TypeScript exports with
+  `just write-app-server-schema`, plus
+  `just write-app-server-schema --experimental` when experimental fixtures are
+  affected.
 - Update app-server docs and integration tests.
 - Preserve initialization and experimental gating rules.
 
@@ -110,5 +122,16 @@ Source references:
 
 - `AGENTS.md:174-218`
 - `codex-rs/app-server-protocol/src/lib.rs:1-49`
+- `codex-rs/app-server-protocol/src/protocol/common.rs:480-660`
 - `codex-rs/app-server/src/message_processor.rs:582-860`
 
+## Read Next
+
+- [SDK And Protocol Generation](../sdk/sdk-and-protocol-generation.md) for
+  schema, TypeScript, and Python SDK surfaces.
+- [External Agent Migration And Sessions](../agents/external-agent-migration-and-sessions.md)
+  for external-agent config/session API behavior.
+- [Remote Control And Device Keys](../runtime/remote-control-and-device-keys.md)
+  for remote transport and local-only device-key RPCs.
+- [Validation And Testing](../testing/test-matrix.md) for protocol validation
+  commands.

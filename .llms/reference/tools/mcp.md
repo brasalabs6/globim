@@ -85,12 +85,31 @@ Source references:
 - `read_mcp_resource`
 
 Core handles them through `McpResourceHandler`. Listing all servers disallows
-cursors and delegates to `session.mcp_connection_manager.list_all_resources`.
+cursors and delegates through `session.services.mcp_connection_manager`.
 
 Source references:
 
 - `codex-rs/tools/src/mcp_resource_tool.rs:6-94`
 - `codex-rs/core/src/tools/handlers/mcp_resource.rs:180-349`
+
+## Naming And Approval Invariants
+
+- MCP server names are validated before startup and must match the supported
+  alphanumeric, underscore, and dash pattern.
+- Model-visible names are sanitized and qualified as `mcp__server__tool`; raw
+  server/tool metadata is preserved for routing.
+- Colliding or too-long model-visible names are disambiguated with SHA-1-derived
+  suffixes and capped at the Responses API tool-name limit.
+- Approval policy belongs in core MCP call handling, not in the connection
+  manager.
+
+Source references:
+
+- `codex-rs/codex-mcp/src/rmcp_client.rs:442-446`
+- `codex-rs/codex-mcp/src/tools.rs:29-53`
+- `codex-rs/codex-mcp/src/tools.rs:136-228`
+- `codex-rs/codex-mcp/src/tools.rs:240-350`
+- `codex-rs/core/src/mcp_tool_call.rs:726-1095`
 
 ## MCP Call Flow
 
@@ -134,11 +153,42 @@ Source references:
 - `codex-rs/core/src/plugins/manager.rs:1309`
 - `codex-rs/core/src/config/config_tests.rs:3395-4436`
 
+## First-Party MCP Server
+
+`codex-rs/mcp-server` is the first-party stdio MCP server. It loads Codex
+config, initializes exec-server environment management, sets app residency
+requirements, wires OTEL, reads JSON-RPC messages from stdin, writes responses to
+stdout, and exposes `codex` plus `codex-reply` tools that start or continue
+Codex sessions.
+
+Approval requests are sent back to the MCP client through `elicitation/create`
+for exec and patch approvals, then converted into Codex `Op::ExecApproval` or
+`Op::PatchApproval` submissions. Keep this client-facing approval loop distinct
+from model-visible MCP tool calls handled by `codex-core`.
+
+Source references:
+
+- `codex-rs/mcp-server/src/lib.rs:59-110`
+- `codex-rs/mcp-server/src/lib.rs:112-191`
+- `codex-rs/mcp-server/src/message_processor.rs:47-76`
+- `codex-rs/mcp-server/src/message_processor.rs:187-273`
+- `codex-rs/mcp-server/src/message_processor.rs:308-348`
+- `codex-rs/mcp-server/src/message_processor.rs:350-418`
+- `codex-rs/mcp-server/src/codex_tool_config.rs:20-65`
+- `codex-rs/mcp-server/src/codex_tool_config.rs:109-198`
+- `codex-rs/mcp-server/src/codex_tool_runner.rs:56-148`
+- `codex-rs/mcp-server/src/exec_approval.rs:17-48`
+- `codex-rs/mcp-server/src/exec_approval.rs:50-147`
+- `codex-rs/mcp-server/src/patch_approval.rs:20-41`
+- `codex-rs/mcp-server/src/patch_approval.rs:43-142`
+
 ## Extension Checklist
 
 - Prefer `McpConnectionManager` for listing, naming, filtering, resources, and
   call routing.
 - Keep approval and sandbox-state augmentation in core MCP call handling.
+- Keep the first-party MCP server's client-elicitation approval flow aligned
+  with Codex approval ops when changing MCP-hosted Codex sessions.
 - Preserve deterministic `mcp__server__tool` naming and collision behavior.
 - Update resource tools and handler if adding resource/template behavior.
 - Update tool_search/deferred exposure tests when changing MCP exposure.
@@ -151,4 +201,3 @@ Test surfaces:
 - `codex-rs/core/tests/suite/openai_file_mcp.rs:93-220`
 - `codex-rs/core/tests/suite/search_tool.rs:141-245`
 - `codex-rs/codex-mcp/src/connection_manager_tests.rs:90-234`
-

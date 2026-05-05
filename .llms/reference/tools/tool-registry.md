@@ -118,6 +118,30 @@ Source references:
 - `codex-rs/core/src/tools/context.rs:247-335`
 - `codex-rs/core/src/tools/context.rs:374-480`
 
+## Exposure Exceptions
+
+Most tools follow the same schema-plan-handler path, but several surfaces are
+special cases:
+
+- Code-mode tools can be nested/recursive and are registered as dedicated
+  execute/wait handler kinds.
+- Deferred MCP and dynamic tools may register handlers before the model-visible
+  spec is loaded through `tool_search`.
+- Unavailable-tool placeholders keep model-visible names readable even when a
+  tool has been filtered or cannot be loaded.
+- Namespace filtering changes which dynamic and MCP tools are visible.
+- API-native tools such as web search and image generation can be pushed as
+  model-visible specs without a local core handler.
+- Agent-job tools share one handler kind and branch by model-visible name.
+
+Source references:
+
+- `codex-rs/tools/src/tool_registry_plan.rs:263-308`
+- `codex-rs/tools/src/tool_registry_plan.rs:371-389`
+- `codex-rs/tools/src/tool_registry_plan.rs:492-507`
+- `codex-rs/tools/src/tool_registry_plan.rs:509-599`
+- `codex-rs/core/src/tools/spec.rs:180-220`
+
 ## Change Checklist
 
 - Keep tool schema, handler kind, core handler registration, runtime behavior,
@@ -127,4 +151,3 @@ Source references:
   state, MCP state, or session state.
 - Provide hook payloads when external policy/observability should see the call.
 - Keep unsupported/deferred/dynamic tool error paths model-readable.
-

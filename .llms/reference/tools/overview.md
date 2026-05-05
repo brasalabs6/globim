@@ -48,6 +48,9 @@ Source references:
 - Collaboration:
   - legacy v1 agent tools.
   - MultiAgentV2 task-path tools.
+- Agent jobs:
+  - `spawn_agents_on_csv`
+  - `report_agent_job_result`
 
 Source references:
 
@@ -55,6 +58,7 @@ Source references:
 - `codex-rs/tools/src/tool_registry_plan.rs:194-260`
 - `codex-rs/tools/src/tool_registry_plan.rs:274-356`
 - `codex-rs/tools/src/tool_registry_plan.rs:371-489`
+- `codex-rs/tools/src/tool_registry_plan.rs:492-507`
 
 ## Runtime Dispatch
 
@@ -100,6 +104,12 @@ Source references:
 - `codex-rs/core/src/tools/sandboxing.rs:40-117`
 - `codex-rs/core/src/tools/sandboxing.rs:279-417`
 
+Read next:
+
+- [Safety, Sandbox, Permissions, And Guardian](../safety/sandbox-permissions-guardian.md)
+- [Skills, Plugins, Apps, And Hooks](../extensions/skills-plugins-apps-hooks.md)
+- [Analytics, Feedback, And OTEL](../observability/analytics-feedback-otel.md)
+
 ## Parallelism
 
 Parallel execution is opt-in per call. Parallel-capable calls take a shared lock;
@@ -123,3 +133,7 @@ For any new model-visible tool:
 6. Add integration tests through the core tool harness if the tool has side
    effects.
 
+Read next:
+
+- [Validation And Testing](validation-and-testing.md)
+- [Testing Matrix](../testing/test-matrix.md)

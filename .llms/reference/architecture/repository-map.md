@@ -21,6 +21,8 @@ changes.
 - `codex-rs/`: primary Rust workspace.
 - `sdk/`: TypeScript SDK workspace.
 - `docs/`: user-facing docs inherited from or adapted from upstream.
+- `.llms/reference/`: LLM-facing implementation reference docs for high-risk
+  code paths, feature surfaces, and fork-specific invariants.
 
 Source references:
 
@@ -60,6 +62,14 @@ Important crates:
   runtime environment.
 - `file-system`, `file-search`, `apply-patch`, `exec`, `sandboxing`,
   `shell-command`, `shell-escalation`: supporting execution and file tooling.
+- `analytics`, `otel`, `feedback`: telemetry, feedback, and observability
+  surfaces.
+- `cloud-tasks`, `cloud-tasks-client`, `cloud-requirements`: cloud task CLI/API
+  flows and managed requirements.
+- `external-agent-migration`, `external-agent-sessions`: import paths for
+  compatible external-agent config and sessions.
+- `login`, `model-provider`, `model-provider-info`: auth state, provider
+  definitions, and provider-specific auth behavior.
 
 Source references:
 
@@ -91,6 +101,18 @@ Source references:
   and `codex-rs/core/src/tools/handlers/mcp*.rs`.
 - Persistent thread metadata and logs: `codex-rs/state` and `codex-rs/thread-store`.
 - Core protocol objects: `codex-rs/protocol`.
+- Config layering and feature flags: `codex-rs/config`, `codex-rs/features`,
+  and `codex-rs/core/src/config`.
+- Auth and model providers: `codex-rs/login`, `codex-rs/model-provider`, and
+  `codex-rs/model-provider-info`.
+- Extensions: `codex-rs/core-skills`, `codex-rs/core-plugins`,
+  `codex-rs/plugin`, `codex-rs/hooks`, and app connector paths.
+- Cloud and remote runtime: `codex-rs/cloud-*`, app-server remote-control
+  transport, `codex-rs/device-key`, and state migrations.
+- Observability: `codex-rs/analytics`, `codex-rs/otel`, `codex-rs/feedback`,
+  and `codex-rs/state/src/log_db.rs`.
+- SDK/protocol generation: `codex-rs/app-server-protocol`, `sdk/python`, and
+  `sdk/typescript`.
 
 ## Known Documentation Risks
 
@@ -102,6 +124,8 @@ Source references:
   code there by default.
 - Public and internal binary names intentionally differ.
 - `RemoteThreadStore` exists but is explicitly work in progress.
+- User docs under `docs/` may drift from fork identity unless checked against
+  root fork contract docs.
 
 Source references:
 
@@ -111,4 +135,3 @@ Source references:
 - `AGENTS.md:64-75`
 - `codex-cli/bin/goblin.js:56-65`
 - `codex-rs/thread-store/src/remote/mod.rs:27-32`
-

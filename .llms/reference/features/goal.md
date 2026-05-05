@@ -166,8 +166,21 @@ Source references:
   instruction.
 - Do not let `update_goal` become a general status mutation tool unless the
   safety contract is deliberately redesigned.
+- Treat objective text as untrusted prompt content. Preserve trimming, maximum
+  length, and escaping before injecting it into hidden developer steering.
+- Preserve stale-update protection through expected goal ids when runtime code
+  accounts or completes goals.
+- Preserve the wire distinction between omitted token budget and explicit budget
+  clearing/setting.
 - Preserve notification ordering through thread listener commands when a
   listener exists.
+
+Source references:
+
+- `codex-rs/core/src/goals.rs:270-355`
+- `codex-rs/core/src/goals.rs:621-724`
+- `codex-rs/core/src/tools/handlers/goal.rs:79-184`
+- `codex-rs/app-server/src/codex_message_processor/thread_goal_handlers.rs:222-438`
 
 ## Extension Checklist
 
@@ -190,4 +203,3 @@ Primary tests to inspect or extend:
 - `codex-rs/tui/src/chatwidget/tests/status_and_layout.rs:1692-1907`
 - `codex-rs/tui/src/chatwidget/tests/goal_menu.rs:10-50`
 - `codex-rs/core/src/session/tests.rs:7867-8038`
-

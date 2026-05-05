@@ -6,6 +6,10 @@ tools, MCP, goals, app-server protocol, or runtime state.
 ## Pick The Right Layer
 
 - Public command/package/release identity: `codex-cli`, `scripts`, workflows.
+- Config and feature gates: `codex-rs/config`, `codex-rs/features`, and
+  `codex-rs/core/src/config`.
+- Auth and provider behavior: `codex-rs/login`, `codex-rs/model-provider`, and
+  `codex-rs/model-provider-info`.
 - Terminal UI: `codex-rs/tui`.
 - External API: `codex-rs/app-server` and `codex-rs/app-server-protocol`.
 - Session and turn runtime: `codex-rs/core/src/session`, `tasks`,
@@ -17,6 +21,18 @@ tools, MCP, goals, app-server protocol, or runtime state.
 - Persistent state: `codex-rs/state`.
 - Thread history boundary: `codex-rs/thread-store`.
 - Core shared protocol: `codex-rs/protocol`.
+- SDK and generated protocol artifacts: `codex-rs/app-server-protocol`,
+  `sdk/python`, and `sdk/typescript`.
+- Observability: `codex-rs/analytics`, `codex-rs/otel`, `codex-rs/feedback`,
+  and SQLite log storage.
+- User docs and fork identity: root docs, `docs/`, `codex-cli`, and release
+  workflow files.
+
+Read first:
+
+- [Repository Map](architecture/repository-map.md)
+- [Config And Feature Flags](config/config-and-feature-flags.md)
+- [Model Providers And Auth](auth/model-providers-and-auth.md)
 
 ## App-Server API Changes
 
@@ -63,6 +79,7 @@ Read first:
 Read first:
 
 - [MCP Tools And Resources](tools/mcp.md)
+- [Skills, Plugins, Apps, And Hooks](extensions/skills-plugins-apps-hooks.md)
 
 ## File Or Patch Changes
 
@@ -101,6 +118,34 @@ Read first:
 Read first:
 
 - [Subagents And Orchestration](agents/subagents.md)
+- [Agent Jobs](agents/agent-jobs.md)
+- [External Agent Migration And Sessions](agents/external-agent-migration-and-sessions.md)
+
+## Frontend And Runtime Changes
+
+- Keep TUI changes aligned with app-server wrappers when the flow is exposed to
+  both local terminal and external clients.
+- Preserve initialize, lossless/best-effort event ordering, and experimental API
+  gates for app-server clients.
+- Run TUI snapshots for visible terminal changes.
+
+Read first:
+
+- [TUI And App-Server Frontends](ui/tui-and-app-server-frontends.md)
+- [Turn Context, Compaction, Realtime, And Review](runtime/turn-context-compaction-realtime-review.md)
+
+## Release, Docs, And Fork Identity
+
+- Preserve public package `@brasalabs/goblins` and command `goblin`.
+- Keep native binary/path assumptions aligned with `codex-cli`.
+- Treat root docs as canonical when inherited `docs/` content uses upstream
+  Codex naming.
+
+Read first:
+
+- [Fork Packaging And Release](release/fork-packaging-and-release.md)
+- [User Docs And Fork Drift](docs/user-docs-and-fork-drift.md)
+- [Personality And Context](prompts/personality-and-context.md)
 
 ## Validation Ladder
 
@@ -113,4 +158,4 @@ Read first:
 Read first:
 
 - [Validation And Testing](tools/validation-and-testing.md)
-
+- [Testing Matrix](testing/test-matrix.md)

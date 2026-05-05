@@ -31,8 +31,10 @@ Source references:
 
 ## Thread Store Boundary
 
-`ThreadStore` abstracts thread creation, resume, append, flush, shutdown,
-history load, read, list, metadata update, archive, and unarchive. Core and
+`ThreadStore` abstracts thread creation, resume, append, persist, discard,
+flush, shutdown, history load, read, list, metadata update, archive, and
+unarchive. `persist_thread` materializes a live writer into durable rollout
+storage; `discard_thread` drops an unmaterialized live writer. Core and
 app-server should depend on the trait boundary instead of assuming local file
 layout.
 
@@ -82,4 +84,3 @@ Source references:
 - Add tests for replacement/update/delete/accounting semantics.
 - Update app-server/core protocol conversion if state becomes visible outside
   the state crate.
-
