@@ -34,7 +34,68 @@ concurrency:
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 
 jobs:
+  changed:
+    name: Detect V8-relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      source: ${{ steps.detect.outputs.source }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          fetch-depth: 0
+      - name: Detect V8 source paths
+        id: detect
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME:-}" == "workflow_dispatch" ]]; then
+            echo "source=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
+            base_sha="${PR_BASE_SHA:?PR_BASE_SHA is required for pull_request events}"
+            head_sha="${PR_HEAD_SHA:?PR_HEAD_SHA is required for pull_request events}"
+          elif [[ "${GITHUB_EVENT_NAME:-}" == "push" ]]; then
+            base_sha="${PUSH_BEFORE_SHA:-}"
+            head_sha="${GITHUB_SHA:?GITHUB_SHA is required for push events}"
+            if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+              echo "source=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          else
+            echo "source=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          mapfile -t files < <(git diff --name-only --no-renames "$base_sha" "$head_sha")
+
+          source=false
+          for file in "${files[@]}"; do
+            echo "changed: $file"
+            case "$file" in
+              codex-rs/Cargo.toml)
+                if git diff --unified=0 --no-ext-diff "$base_sha" "$head_sha" -- "$file" \
+                  | grep -E '^[+-].*(v8|deno_core_icudata)' >/dev/null; then
+                  source=true
+                fi
+                ;;
+              *)
+                source=true
+                ;;
+            esac
+          done
+
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+
   metadata:
+    needs: changed
+    if: ${{ needs.changed.outputs.source == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       v8_version: ${{ steps.v8_version.outputs.version }}
