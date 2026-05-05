@@ -59,6 +59,15 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Retain temporary staging directories instead of deleting them.",
     )
+    parser.add_argument(
+        "--target",
+        dest="targets",
+        action="append",
+        help=(
+            "Limit platform package expansion and native dependency installation to the "
+            "specified target triple. May be repeated. Defaults to all supported targets."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -69,10 +78,17 @@ def collect_native_components(packages: list[str]) -> set[str]:
     return components
 
 
-def expand_packages(packages: list[str]) -> list[str]:
+def expand_packages(packages: list[str], target_filter: set[str] | None = None) -> list[str]:
     expanded: list[str] = []
     for package in packages:
         for expanded_package in PACKAGE_EXPANSIONS.get(package, [package]):
+            platform_package = CODEX_PLATFORM_PACKAGES.get(expanded_package)
+            if (
+                target_filter is not None
+                and platform_package is not None
+                and platform_package["target_triple"] not in target_filter
+            ):
+                continue
             if expanded_package in expanded:
                 continue
             expanded.append(expanded_package)
@@ -115,6 +131,7 @@ def install_native_components(
     workflow_url: str,
     components: set[str],
     vendor_root: Path,
+    target_filter: set[str] | None = None,
 ) -> None:
     if not components:
         return
@@ -122,6 +139,9 @@ def install_native_components(
     cmd = [str(INSTALL_NATIVE_DEPS), "--workflow-url", workflow_url]
     for component in sorted(components):
         cmd.extend(["--component", component])
+    if target_filter is not None:
+        for target in sorted(target_filter):
+            cmd.extend(["--target", target])
     cmd.append(str(vendor_root))
     run_command(cmd)
 
@@ -149,7 +169,8 @@ def main() -> int:
 
     runner_temp = Path(os.environ.get("RUNNER_TEMP", tempfile.gettempdir()))
 
-    packages = expand_packages(list(args.packages))
+    target_filter = set(args.targets) if args.targets else None
+    packages = expand_packages(list(args.packages), target_filter)
     native_components = collect_native_components(packages)
 
     vendor_temp_root: Path | None = None
@@ -164,7 +185,12 @@ def main() -> int:
                 args.release_version, args.workflow_url
             )
             vendor_temp_root = Path(tempfile.mkdtemp(prefix="npm-native-", dir=runner_temp))
-            install_native_components(workflow_url, native_components, vendor_temp_root)
+            install_native_components(
+                workflow_url,
+                native_components,
+                vendor_temp_root,
+                target_filter,
+            )
             vendor_src = vendor_temp_root / "vendor"
 
         if resolved_head_sha:
@@ -191,6 +217,9 @@ def main() -> int:
 
             if vendor_src is not None:
                 cmd.extend(["--vendor-src", str(vendor_src)])
+            if target_filter is not None:
+                for target in sorted(target_filter):
+                    cmd.extend(["--target", target])
 
             try:
                 run_command(cmd)

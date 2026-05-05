@@ -352,10 +352,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ steps.release_name.outputs.version }}
           WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GOBLINS_BUILD_WINDOWS_RELEASE: ${{ vars.GOBLINS_BUILD_WINDOWS_RELEASE == 'true' }}
         run: |
+          target_args=(--target x86_64-unknown-linux-musl)
+          if [[ "${GOBLINS_BUILD_WINDOWS_RELEASE}" == "true" ]]; then
+            target_args+=(--target x86_64-pc-windows-msvc)
+          fi
           ./scripts/stage_npm_packages.py \
             --release-version "$RELEASE_VERSION" \
             --workflow-url "$WORKFLOW_URL" \
+            "${target_args[@]}" \
             --package @brasalabs/goblins
 
       - name: Generate release notes
