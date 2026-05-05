@@ -2,9 +2,11 @@ name: cargo-deny
 
 on:
   pull_request:
+    branches:
+      - goblins
   push:
     branches:
-      - main
+      - goblins
 
 jobs:
   cargo-deny:
