@@ -388,6 +388,7 @@ async fn refresh_available_models_preserves_goblins_prompt_fields() {
         assert!(model_info.supports_image_detail_original);
         assert!(model_info.model_messages.is_some());
         assert!(instructions.contains("You are a Goblin."));
+        assert!(instructions.contains("# Personality"));
         assert!(instructions.contains("You happen to live in a terminal and work with code"));
         assert!(instructions.contains("You run inside the Goblins CLI"));
         assert!(!instructions.contains("You are a Goblins."));
@@ -819,6 +820,8 @@ fn bundled_models_json_includes_project_docs_spec() {
         .unwrap_or_else(|err| panic!("bundled models.json should parse: {err}"));
 
     for model in &response.models {
+        let pragmatic_instructions = model
+            .get_model_instructions(Some(codex_protocol::config_types::Personality::Pragmatic));
         assert!(
             model.base_instructions.contains("# Project Docs Spec"),
             "expected project docs spec in base instructions for {}",
@@ -829,19 +832,20 @@ fn bundled_models_json_includes_project_docs_spec() {
             "expected GOBLINS.md in base instructions for {}",
             model.slug
         );
-        if let Some(model_messages) = &model.model_messages
-            && let Some(instructions_template) = &model_messages.instructions_template
-        {
-            assert!(
-                instructions_template.contains("# Project Docs Spec"),
-                "expected project docs spec in instructions template for {}",
-                model.slug
-            );
-            assert!(
-                instructions_template.contains("GOBLINS.md"),
-                "expected GOBLINS.md in instructions template for {}",
-                model.slug
-            );
-        }
+        assert!(
+            model.supports_personality(),
+            "expected personality support for {}",
+            model.slug
+        );
+        assert!(
+            pragmatic_instructions.contains("# Personality"),
+            "expected standalone personality prompt for {}",
+            model.slug
+        );
+        assert!(
+            pragmatic_instructions.contains("# Project Docs Spec"),
+            "expected project docs spec in personality prompt for {}",
+            model.slug
+        );
     }
 }

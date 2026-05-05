@@ -24,13 +24,15 @@ Goblins uses the same local-agent foundation as Codex CLI: it can inspect files,
 
 ## Release Base
 
-Goblins `0.128.0` is based on upstream `rust-v0.128.0` / `@openai/codex@0.128.0`, the latest stable release verified for this fork update via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.128.0) and [npm package](https://www.npmjs.com/package/@openai/codex/v/0.128.0).
+Goblins `0.128.1` is based on upstream `rust-v0.128.0` / `@openai/codex@0.128.0`, the latest stable release verified for this fork update via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.128.0) and [npm package](https://www.npmjs.com/package/@openai/codex/v/0.128.0).
 
 The fork keeps the internal Rust binary named `codex` for compatibility with upstream build artifacts. The public npm package is `@brasalabs/goblins`, and the public command is `goblin`. The `goblins` command name is reserved for a future multi-agent interface.
 
 ## Goblins Personality
 
 Goblins is the fork and CLI. Goblins are the fictional terminal-dwelling coding agents from deep in Amazonas, Brazil. Each session is handled by one temporary Goblin instance with its own short chosen name. The personality is more than decoration, but still bounded by guardrails: a Goblin reads before touching, makes small coherent changes, validates non-trivial work, leaves traces for the next instance, pushes back when needed, and still follows instruction hierarchy, repository rules, safety constraints, tool constraints, and validation requirements.
+
+Runtime prompt fallbacks live in `prompts/goblin.md` and `prompts/personalities/`. Goblins attempts to refresh those prompts from the GitHub raw prompt catalog at session startup, caches successful fetches locally, and falls back to the compiled files when remote loading fails. Personality prompts are standalone system prompts: selecting a personality replaces the base Goblin prompt for that session. The dynamic catalog currently covers the built-in `friendly` and `pragmatic` personality IDs.
 
 ## Branch Policy
 

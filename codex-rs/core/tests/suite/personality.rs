@@ -81,7 +81,7 @@ fn read_only_text_turn_with_personality(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn personality_does_not_mutate_base_instructions_without_template() {
+async fn personality_uses_standalone_prompt_for_unknown_models() {
     let codex_home = TempDir::new().expect("create temp dir");
     let mut config = load_default_config_for_test(&codex_home).await;
     config
@@ -92,10 +92,10 @@ async fn personality_does_not_mutate_base_instructions_without_template() {
 
     let model_info =
         codex_core::test_support::construct_model_info_offline("unknown-model", &config);
-    assert_eq!(
-        model_info.get_model_instructions(config.personality),
-        model_info.base_instructions
-    );
+    let instructions = model_info.get_model_instructions(config.personality);
+
+    assert!(instructions.contains(LOCAL_FRIENDLY_TEMPLATE));
+    assert_ne!(instructions, model_info.base_instructions);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -554,7 +554,7 @@ async fn user_turn_personality_skips_if_feature_disabled() -> anyhow::Result<()>
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn remote_model_friendly_personality_instructions_with_feature() -> anyhow::Result<()> {
+async fn remote_model_friendly_personality_uses_local_prompt_pack() -> anyhow::Result<()> {
     skip_if_no_network!(Ok(()));
 
     let server = MockServer::builder()
@@ -649,19 +649,23 @@ async fn remote_model_friendly_personality_instructions_with_feature() -> anyhow
     let instructions_text = request.instructions_text();
 
     assert!(
-        instructions_text.contains(friendly_personality_message),
-        "expected instructions to include the remote friendly personality template, got: {instructions_text:?}"
+        instructions_text.contains(LOCAL_FRIENDLY_TEMPLATE),
+        "expected instructions to include the local friendly prompt pack, got: {instructions_text:?}"
     );
     assert!(
         !instructions_text.contains(default_personality_message),
         "expected instructions to skip the remote default personality template, got: {instructions_text:?}"
+    );
+    assert!(
+        !instructions_text.contains(friendly_personality_message),
+        "expected instructions to ignore the remote friendly personality template, got: {instructions_text:?}"
     );
 
     Ok(())
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn user_turn_personality_remote_model_template_includes_update_message() -> anyhow::Result<()>
+async fn user_turn_personality_update_uses_local_prompt_pack_for_remote_model() -> anyhow::Result<()>
 {
     skip_if_no_network!(Ok(()));
 
@@ -791,7 +795,7 @@ async fn user_turn_personality_remote_model_template_includes_update_message() -
     let developer_texts = request.message_input_texts("developer");
     let personality_text = developer_texts
         .iter()
-        .find(|text| text.contains(remote_friendly_message))
+        .find(|text| text.contains(LOCAL_FRIENDLY_TEMPLATE))
         .expect("expected personality update message in developer input");
 
     assert!(
@@ -799,8 +803,16 @@ async fn user_turn_personality_remote_model_template_includes_update_message() -
         "expected personality update preamble, got {personality_text:?}"
     );
     assert!(
-        personality_text.contains(remote_friendly_message),
-        "expected personality update to include remote template, got: {personality_text:?}"
+        personality_text.contains(LOCAL_FRIENDLY_TEMPLATE),
+        "expected personality update to include local friendly prompt pack, got: {personality_text:?}"
+    );
+    assert!(
+        !personality_text.contains(remote_friendly_message),
+        "expected personality update to ignore remote friendly template, got: {personality_text:?}"
+    );
+    assert!(
+        !personality_text.contains(remote_pragmatic_message),
+        "expected personality update to ignore remote pragmatic template, got: {personality_text:?}"
     );
 
     Ok(())

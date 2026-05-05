@@ -1,4 +1,4 @@
-use codex_models_manager::model_info::BASE_INSTRUCTIONS;
+use codex_models_manager::model_info::apply_fallback_prompt_override;
 use codex_protocol::config_types::ReasoningSummary;
 use codex_protocol::config_types::Verbosity;
 use codex_protocol::openai_models::ApplyPatchToolType;
@@ -36,7 +36,7 @@ pub(crate) fn static_model_catalog() -> ModelsResponse {
 }
 
 fn gpt_5_4_cmb_bedrock_model(priority: i32) -> ModelInfo {
-    ModelInfo {
+    let mut model = ModelInfo {
         slug: GPT_5_4_CMB_MODEL_ID.to_string(),
         display_name: "gpt-5.4".to_string(),
         description: Some("Strong model for everyday coding.".to_string()),
@@ -49,7 +49,7 @@ fn gpt_5_4_cmb_bedrock_model(priority: i32) -> ModelInfo {
         additional_speed_tiers: vec!["fast".to_string()],
         availability_nux: None,
         upgrade: None,
-        base_instructions: BASE_INSTRUCTIONS.to_string(),
+        base_instructions: String::new(),
         model_messages: None,
         supports_reasoning_summaries: true,
         default_reasoning_summary: ReasoningSummary::None,
@@ -68,11 +68,13 @@ fn gpt_5_4_cmb_bedrock_model(priority: i32) -> ModelInfo {
         input_modalities: vec![InputModality::Text, InputModality::Image],
         used_fallback_model_metadata: false,
         supports_search_tool: true,
-    }
+    };
+    apply_fallback_prompt_override(&mut model);
+    model
 }
 
 fn bedrock_oss_model(slug: &str, display_name: &str, priority: i32) -> ModelInfo {
-    ModelInfo {
+    let mut model = ModelInfo {
         slug: slug.to_string(),
         display_name: display_name.to_string(),
         description: Some(display_name.to_string()),
@@ -89,7 +91,7 @@ fn bedrock_oss_model(slug: &str, display_name: &str, priority: i32) -> ModelInfo
         additional_speed_tiers: Vec::new(),
         availability_nux: None,
         upgrade: None,
-        base_instructions: BASE_INSTRUCTIONS.to_string(),
+        base_instructions: String::new(),
         model_messages: None,
         supports_reasoning_summaries: true,
         default_reasoning_summary: ReasoningSummary::None,
@@ -108,7 +110,9 @@ fn bedrock_oss_model(slug: &str, display_name: &str, priority: i32) -> ModelInfo
         input_modalities: vec![InputModality::Text],
         used_fallback_model_metadata: false,
         supports_search_tool: false,
-    }
+    };
+    apply_fallback_prompt_override(&mut model);
+    model
 }
 
 fn gpt_5_4_cmb_reasoning_levels() -> Vec<ReasoningEffortPreset> {

@@ -529,6 +529,9 @@ impl Codex {
         {
             let _ = models_manager.list_models(refresh_strategy).await;
         }
+        models_manager
+            .refresh_prompt_catalog(refresh_strategy)
+            .await;
         let model = models_manager
             .get_default_model(&config.model, refresh_strategy)
             .await;
