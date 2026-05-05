@@ -109,6 +109,15 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Directory containing pre-installed native binaries to bundle (vendor root).",
     )
+    parser.add_argument(
+        "--target",
+        dest="targets",
+        action="append",
+        help=(
+            "Limit generated platform optional dependencies to the specified target triple. "
+            "May be repeated. Defaults to all supported targets."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -126,14 +135,15 @@ def main() -> int:
     if not version:
         raise RuntimeError("Must specify --version or --release-version.")
 
+    target_filter = set(args.targets) if args.targets else None
     staging_dir, created_temp = prepare_staging_dir(args.staging_dir)
 
     try:
-        stage_sources(staging_dir, version, package)
+        stage_sources(staging_dir, version, package, target_filter)
 
         vendor_src = args.vendor_src.resolve() if args.vendor_src else None
         native_components = PACKAGE_NATIVE_COMPONENTS.get(package, [])
-        target_filter = PACKAGE_TARGET_FILTERS.get(package)
+        package_target_filter = PACKAGE_TARGET_FILTERS.get(package)
 
         if native_components:
             if vendor_src is None:
@@ -148,7 +158,7 @@ def main() -> int:
                 vendor_src,
                 staging_dir,
                 native_components,
-                target_filter={target_filter} if target_filter else None,
+                target_filter={package_target_filter} if package_target_filter else target_filter,
             )
 
         if release_version:
@@ -205,7 +215,12 @@ def prepare_staging_dir(staging_dir: Path | None) -> tuple[Path, bool]:
     return temp_dir, True
 
 
-def stage_sources(staging_dir: Path, version: str, package: str) -> None:
+def stage_sources(
+    staging_dir: Path,
+    version: str,
+    package: str,
+    target_filter: set[str] | None = None,
+) -> None:
     package_json: dict
     package_json_path: Path | None = None
 
@@ -279,8 +294,7 @@ def stage_sources(staging_dir: Path, version: str, package: str) -> None:
             CODEX_PLATFORM_PACKAGES[platform_package]["npm_name"]: compute_platform_package_version(
                 version, CODEX_PLATFORM_PACKAGES[platform_package]["npm_tag"]
             )
-            for platform_package in PACKAGE_EXPANSIONS[CODEX_NPM_NAME]
-            if platform_package != CODEX_NPM_NAME
+            for platform_package in selected_platform_packages(target_filter)
         }
 
     elif package == "codex-sdk":
@@ -303,6 +317,17 @@ def compute_platform_package_version(version: str, platform_tag: str) -> str:
     # npm forbids republishing the same package name/version, so each
     # platform-specific tarball needs a unique version string.
     return f"{version}-{platform_tag}"
+
+
+def selected_platform_packages(target_filter: set[str] | None = None) -> list[str]:
+    packages = [
+        package_name
+        for package_name, package_config in CODEX_PLATFORM_PACKAGES.items()
+        if target_filter is None or package_config["target_triple"] in target_filter
+    ]
+    if not packages:
+        raise RuntimeError("No platform packages selected for the requested target filter.")
+    return packages
 
 
 def run_command(cmd: list[str], cwd: Path | None = None) -> None:

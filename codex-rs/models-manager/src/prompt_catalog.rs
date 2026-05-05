@@ -12,7 +12,7 @@ use tracing::debug;
 use tracing::warn;
 
 const DEFAULT_GITHUB_PROMPTS_BASE_URL: &str =
-    "https://raw.githubusercontent.com/brasalabs6/goblins/main";
+    "https://raw.githubusercontent.com/brasalabs6/goblins/goblins";
 const REMOTE_FETCH_TIMEOUT: Duration = Duration::from_millis(1500);
 const MAX_PROMPT_BYTES: usize = 256 * 1024;
 
@@ -202,5 +202,19 @@ mod tests {
         assert!(validate_prompt_text("hello".to_string()).is_ok());
         assert!(validate_prompt_text("  \n".to_string()).is_err());
         assert!(validate_prompt_text("x".repeat(MAX_PROMPT_BYTES + 1)).is_err());
+    }
+
+    #[test]
+    fn default_remote_prompt_url_targets_goblins_branch() {
+        assert_eq!(
+            DEFAULT_GITHUB_PROMPTS_BASE_URL,
+            "https://raw.githubusercontent.com/brasalabs6/goblins/goblins"
+        );
+        if std::env::var_os("GOBLINS_PROMPTS_BASE_URL").is_none() {
+            assert_eq!(
+                remote_prompt_url("/prompts/goblin.md"),
+                "https://raw.githubusercontent.com/brasalabs6/goblins/goblins/prompts/goblin.md"
+            );
+        }
     }
 }

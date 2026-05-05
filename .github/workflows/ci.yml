@@ -2,7 +2,8 @@ name: ci
 
 on:
   workflow_dispatch: {}
-  pull_request: {}
+  pull_request:
+    branches: [goblins]
   push: { branches: [goblins] }
 
 jobs:
@@ -46,6 +47,20 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
 
+      - name: Restore Cargo cache
+        id: cache_cargo_restore
+        continue-on-error: true
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            codex-rs/target/debug/
+          key: cargo-ci-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+          restore-keys: |
+            cargo-ci-${{ runner.os }}-
+
       - name: Install Linux Rust build dependencies
         run: |
           sudo apt-get update -y
@@ -61,6 +76,18 @@ jobs:
         working-directory: codex-rs
         run: "cargo test -p codex-core personality::"
 
+      - name: Save Cargo cache
+        if: always() && !cancelled() && steps.cache_cargo_restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            codex-rs/target/debug/
+          key: cargo-ci-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+
       - name: Setup pnpm
         uses: pnpm/action-setup@a8198c4bff370c8506180b035930dea56dbd5288 # v5
         with:
@@ -70,6 +97,8 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

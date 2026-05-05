@@ -1,7 +1,8 @@
 name: blob-size-policy
 
 on:
-  pull_request: {}
+  pull_request:
+    branches: [goblins]
 
 jobs:
   check:

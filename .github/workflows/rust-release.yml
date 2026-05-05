@@ -79,6 +79,21 @@ jobs:
           echo "${cargo_home}/bin" >> "$GITHUB_PATH"
           : > "${cargo_home}/config.toml"
 
+      - name: Restore Cargo release cache
+        id: cache_cargo_release_restore
+        continue-on-error: true
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ${{ github.workspace }}/.cargo-home/registry/index/
+            ${{ github.workspace }}/.cargo-home/registry/cache/
+            ${{ github.workspace }}/.cargo-home/git/db/
+            codex-rs/target/release/
+            codex-rs/target/${{ matrix.target }}/release/
+          key: cargo-release-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+          restore-keys: |
+            cargo-release-${{ runner.os }}-${{ matrix.target }}-
+
       - name: Install Zig for musl
         if: ${{ runner.os == 'Linux' }}
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
@@ -150,7 +165,7 @@ jobs:
 
       - name: Cargo build
         shell: bash
-        run: cargo build --target ${{ matrix.target }} --release --bin codex
+        run: cargo build --target ${{ matrix.target }} --release --timings --bin codex
 
       - name: Stage artifact
         shell: bash
@@ -166,7 +181,23 @@ jobs:
           name: ${{ matrix.target }}
           path: codex-rs/dist/${{ matrix.target }}/*
 
+      - name: Save Cargo release cache
+        if: always() && !cancelled() && steps.cache_cargo_release_restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ${{ github.workspace }}/.cargo-home/registry/index/
+            ${{ github.workspace }}/.cargo-home/registry/cache/
+            ${{ github.workspace }}/.cargo-home/git/db/
+            codex-rs/target/release/
+            codex-rs/target/${{ matrix.target }}/release/
+          key: cargo-release-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+
   build-windows:
+    # Temporarily disabled by default for Goblins releases.
+    # Set repository variable GOBLINS_BUILD_WINDOWS_RELEASE=true to re-enable.
+    if: ${{ vars.GOBLINS_BUILD_WINDOWS_RELEASE == 'true' }}
     needs: tag-check
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.runner }}
@@ -187,10 +218,25 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      - name: Restore Cargo release cache
+        id: cache_cargo_release_restore
+        continue-on-error: true
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            codex-rs/target/release/
+            codex-rs/target/${{ matrix.target }}/release/
+          key: cargo-release-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+          restore-keys: |
+            cargo-release-${{ runner.os }}-${{ matrix.target }}-
+
       - name: Cargo build
         shell: bash
         run: >
-          cargo build --target ${{ matrix.target }} --release
+          cargo build --target ${{ matrix.target }} --release --timings
           --bin codex
           --bin codex-windows-sandbox-setup
           --bin codex-command-runner
@@ -216,10 +262,24 @@ jobs:
           name: ${{ matrix.target }}
           path: codex-rs/dist/${{ matrix.target }}/*
 
+      - name: Save Cargo release cache
+        if: always() && !cancelled() && steps.cache_cargo_release_restore.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            codex-rs/target/release/
+            codex-rs/target/${{ matrix.target }}/release/
+          key: cargo-release-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}
+
   release:
     needs:
       - build-unix
       - build-windows
+    if: ${{ always() && needs.build-unix.result == 'success' && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -279,6 +339,8 @@ jobs:
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
           node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -290,10 +352,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ steps.release_name.outputs.version }}
           WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GOBLINS_BUILD_WINDOWS_RELEASE: ${{ vars.GOBLINS_BUILD_WINDOWS_RELEASE == 'true' }}
         run: |
+          target_args=(--target x86_64-unknown-linux-musl)
+          if [[ "${GOBLINS_BUILD_WINDOWS_RELEASE}" == "true" ]]; then
+            target_args+=(--target x86_64-pc-windows-msvc)
+          fi
           ./scripts/stage_npm_packages.py \
             --release-version "$RELEASE_VERSION" \
             --workflow-url "$WORKFLOW_URL" \
+            "${target_args[@]}" \
             --package @brasalabs/goblins
 
       - name: Generate release notes
@@ -348,17 +416,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/npm
-          patterns=(
-            "goblins-npm-${RELEASE_VERSION}.tgz"
-            "goblins-npm-linux-*-${RELEASE_VERSION}.tgz"
-            "goblins-npm-win32-*-${RELEASE_VERSION}.tgz"
-          )
-          for pattern in "${patterns[@]}"; do
-            gh release download "$RELEASE_TAG" \
-              --repo "${GITHUB_REPOSITORY}" \
-              --pattern "$pattern" \
-              --dir dist/npm
-          done
+          gh release download "$RELEASE_TAG" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --pattern "goblins-npm*-${RELEASE_VERSION}.tgz" \
+            --dir dist/npm
 
       - name: Publish to npm
         env:

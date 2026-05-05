@@ -132,6 +132,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--target",
+        dest="targets",
+        action="append",
+        choices=BINARY_TARGETS,
+        help=(
+            "Limit native dependency installation to the specified target triple. "
+            "May be repeated. Defaults to all supported targets."
+        ),
+    )
+    parser.add_argument(
         "root",
         nargs="?",
         type=Path,
@@ -156,6 +166,7 @@ def main() -> int:
         "codex-command-runner",
         "rg",
     ]
+    targets = tuple(args.targets or BINARY_TARGETS)
 
     workflow_url = (args.workflow_url or DEFAULT_WORKFLOW_URL).strip()
     if not workflow_url:
@@ -172,12 +183,13 @@ def main() -> int:
                 artifacts_dir,
                 vendor_dir,
                 [BINARY_COMPONENTS[name] for name in components if name in BINARY_COMPONENTS],
+                targets,
             )
 
     if "rg" in components:
         with _gha_group("Fetch ripgrep binaries"):
             print("Fetching ripgrep binaries...")
-            fetch_rg(vendor_dir, DEFAULT_RG_TARGETS, manifest_path=RG_MANIFEST)
+            fetch_rg(vendor_dir, targets, manifest_path=RG_MANIFEST)
 
     print(f"Installed native dependencies into {vendor_dir}")
     return 0
@@ -269,12 +281,20 @@ def install_binary_components(
     artifacts_dir: Path,
     vendor_dir: Path,
     selected_components: Sequence[BinaryComponent],
+    selected_targets: Sequence[str] = BINARY_TARGETS,
 ) -> None:
     if not selected_components:
         return
 
+    selected_target_set = set(selected_targets)
     for component in selected_components:
-        component_targets = list(component.targets or BINARY_TARGETS)
+        component_targets = [
+            target
+            for target in (component.targets or BINARY_TARGETS)
+            if target in selected_target_set
+        ]
+        if not component_targets:
+            continue
 
         print(
             f"Installing {component.binary_basename} binaries for targets: "
