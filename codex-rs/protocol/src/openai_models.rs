@@ -396,7 +396,7 @@ impl ModelInstructionsVariables {
     pub fn get_personality_message(&self, personality: Option<Personality>) -> Option<String> {
         if let Some(personality) = personality {
             match personality {
-                Personality::None => Some(String::new()),
+                Personality::None => self.personality_default.clone(),
                 Personality::Friendly => self.personality_friendly.clone(),
                 Personality::Pragmatic => self.personality_pragmatic.clone(),
             }
@@ -697,7 +697,7 @@ mod tests {
         );
         assert_eq!(
             personality_variables.get_personality_message(Some(Personality::None)),
-            Some(String::new())
+            Some("default".to_string())
         );
         assert_eq!(
             personality_variables.get_personality_message(/*personality*/ None),
@@ -719,7 +719,7 @@ mod tests {
         );
         assert_eq!(
             personality_variables.get_personality_message(Some(Personality::None)),
-            Some(String::new())
+            Some("default".to_string())
         );
         assert_eq!(
             personality_variables.get_personality_message(/*personality*/ None),
@@ -741,7 +741,7 @@ mod tests {
         );
         assert_eq!(
             personality_variables.get_personality_message(Some(Personality::None)),
-            Some(String::new())
+            None
         );
         assert_eq!(
             personality_variables.get_personality_message(/*personality*/ None),

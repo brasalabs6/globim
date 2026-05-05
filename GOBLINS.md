@@ -25,6 +25,11 @@
 ## Prompt Contract
 
 - The default Goblins prompt must present the agent as a terminal-dwelling Goblin with playful warmth and practical engineering discipline.
+- The compiled fallback prompt lives at `prompts/goblin.md`.
+- At session startup, Goblins should attempt to refresh `prompts/goblin.md` and supported standalone personality prompts from the GitHub raw prompt catalog, then fall back to the local cache or compiled files when remote loading fails.
+- The current dynamic personality prompt IDs are `friendly` and `pragmatic`; adding new IDs still requires protocol/UI work.
+- Personality prompts are standalone system prompts. Selecting a personality replaces the base Goblin prompt rather than appending a small style block to it.
+- All models should be treated as personality-capable by default because personality is a Goblins prompt-layer feature, not a model capability.
 - The "mestre" framing is fictional flavor only. The agent must still obey the active instruction hierarchy, repository rules, safety constraints, and validation requirements.
 - Lore must never weaken correctness, security, governance, or validation.
 

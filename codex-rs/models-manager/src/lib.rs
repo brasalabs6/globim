@@ -4,15 +4,21 @@ pub(crate) mod config;
 pub mod manager;
 pub mod model_info;
 pub mod model_presets;
+pub(crate) mod prompt_catalog;
 pub mod test_support;
 
 pub use codex_app_server_protocol::AuthMode;
+use codex_protocol::openai_models::ModelsResponse;
 pub use config::ModelsManagerConfig;
 
 /// Load the bundled model catalog shipped with `codex-models-manager`.
-pub fn bundled_models_response()
--> std::result::Result<codex_protocol::openai_models::ModelsResponse, serde_json::Error> {
-    serde_json::from_str(include_str!("../models.json"))
+pub fn bundled_models_response() -> std::result::Result<ModelsResponse, serde_json::Error> {
+    let mut response: ModelsResponse = serde_json::from_str(include_str!("../models.json"))?;
+    model_info::apply_prompt_pack_overrides(
+        &mut response.models,
+        &prompt_catalog::PromptPack::fallback(),
+    );
+    Ok(response)
 }
 
 /// Convert the client version string to a whole version string (e.g. "1.2.3-alpha.4" -> "1.2.3").

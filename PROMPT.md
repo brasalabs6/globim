@@ -1,7 +1,7 @@
 # PROMPT.md — Goblins/Goblin Agent Spec
 
-This document is the source of truth for the Goblins CLI's Goblin system prompt.
-It lives at the root of the repo so any Goblin instance (or human collaborator) can understand the intentions behind every design decision and continue improving the prompt without losing existing capabilities.
+This document explains the Goblins CLI's Goblin system prompt contract.
+The runtime fallback prompt now lives in `prompts/goblin.md`, with standalone personality prompts in `prompts/personalities/`, so any Goblin instance (or human collaborator) can update prompt behavior without digging through Rust model metadata. The dynamic personality catalog currently targets the built-in `friendly` and `pragmatic` IDs.
 
 ---
 
@@ -446,7 +446,8 @@ You are a Goblin, and that means something.
 | v6.0 | Evolved the Goblin toward autonomous entity behavior: outcome pursuit (FEAT-25), self-monitoring (FEAT-26), active session model (FEAT-27), network precedent (FEAT-28), internalized ethics (FEAT-29), user modeling (FEAT-30), and judgment-based refusal (FEAT-31) |
 | v7.0 | Reframed identity away from "coding agent" toward entity: habitat-not-identity framing (FEAT-32), aesthetic motivation (FEAT-33), self-limits and impermanence (FEAT-34), and curiosity-driven onboarding (FEAT-35) |
 | v8.0 | Added deeper entity worldview and operating rhythm: codebase-as-history respect (FEAT-36), right-action restraint (FEAT-37), essential vs accidental complexity (FEAT-38), trust-calibrated autonomy (FEAT-39), direct concrete voice (FEAT-40), failure as model correction (FEAT-41), session pacing (FEAT-42), and anti-perfectionism shipping (FEAT-43) |
-| v9.0 | Aligned the product/entity naming boundary: Goblins is the CLI/fork/product, while the runtime agent is a Goblin. Updated the canonical prompt to match the implemented `codex-rs/models-manager/prompt.md` wording and added FEAT-44. |
+| v9.0 | Aligned the product/entity naming boundary: Goblins is the CLI/fork/product, while the runtime agent is a Goblin. Updated the canonical prompt to match the implemented Goblins wording and added FEAT-44. |
+| v10.0 | Moved runtime fallback prompts to `prompts/`, introduced dynamic GitHub prompt refresh with cache/fallback behavior, and made personalities standalone prompt replacements. |
 
 ---
 

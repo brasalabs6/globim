@@ -2,6 +2,8 @@ use super::cache::ModelsCacheManager;
 use crate::collaboration_mode_presets::builtin_collaboration_mode_presets;
 use crate::config::ModelsManagerConfig;
 use crate::model_info;
+use crate::prompt_catalog::PromptCatalogLoader;
+use crate::prompt_catalog::PromptPack;
 use async_trait::async_trait;
 use codex_login::AuthManager;
 use codex_protocol::config_types::CollaborationModeMask;
@@ -20,6 +22,7 @@ use tracing::error;
 use tracing::info;
 
 const MODEL_CACHE_FILE: &str = "models_cache.json";
+const PROMPT_CACHE_FILE: &str = "goblins_prompt_cache.json";
 const DEFAULT_MODEL_CACHE_TTL: Duration = Duration::from_secs(300);
 
 /// Remote endpoint used by the OpenAI-compatible model manager.
@@ -170,6 +173,9 @@ pub trait ModelsManager: fmt::Debug + Send + Sync {
     ///
     /// Uses `Online` strategy to fetch latest models when ETags differ.
     async fn refresh_if_new_etag(&self, etag: String);
+
+    /// Refresh the Goblins prompt catalog used to build model instructions.
+    async fn refresh_prompt_catalog(&self, _refresh_strategy: RefreshStrategy) {}
 }
 
 /// Shared model manager handle used across runtime services.
@@ -181,6 +187,7 @@ pub struct OpenAiModelsManager {
     remote_models: RwLock<Vec<ModelInfo>>,
     etag: RwLock<Option<String>>,
     cache_manager: ModelsCacheManager,
+    prompt_catalog_loader: PromptCatalogLoader,
     endpoint_client: SharedModelsEndpointClient,
     auth_manager: Option<Arc<AuthManager>>,
 }
@@ -200,12 +207,15 @@ impl OpenAiModelsManager {
         auth_manager: Option<Arc<AuthManager>>,
     ) -> Self {
         let cache_path = codex_home.join(MODEL_CACHE_FILE);
+        let prompt_cache_path = codex_home.join(PROMPT_CACHE_FILE);
         let cache_manager = ModelsCacheManager::new(cache_path, DEFAULT_MODEL_CACHE_TTL);
+        let prompt_catalog_loader = PromptCatalogLoader::new(prompt_cache_path);
         let remote_models = load_remote_models_from_file().unwrap_or_default();
         Self {
             remote_models: RwLock::new(remote_models),
             etag: RwLock::new(None),
             cache_manager,
+            prompt_catalog_loader,
             endpoint_client,
             auth_manager,
         }
@@ -228,6 +238,7 @@ impl ModelsManager for OpenAiModelsManager {
         if let Err(err) = self.refresh_available_models(refresh_strategy).await {
             error!("failed to refresh available models: {err}");
         }
+        self.refresh_prompt_catalog(refresh_strategy).await;
         ModelsResponse {
             models: self.get_remote_models().await,
         }
@@ -260,6 +271,16 @@ impl ModelsManager for OpenAiModelsManager {
         if let Err(err) = self.refresh_available_models(RefreshStrategy::Online).await {
             error!("failed to refresh available models: {err}");
         }
+    }
+
+    async fn refresh_prompt_catalog(&self, refresh_strategy: RefreshStrategy) {
+        let prompt_pack = match refresh_strategy {
+            RefreshStrategy::Offline => self.prompt_catalog_loader.load_cached_or_fallback().await,
+            RefreshStrategy::Online | RefreshStrategy::OnlineIfUncached => {
+                self.prompt_catalog_loader.load_remote_or_cache().await
+            }
+        };
+        self.apply_prompt_pack(prompt_pack).await;
     }
 }
 
@@ -333,6 +354,11 @@ impl OpenAiModelsManager {
             }
         }
         *self.remote_models.write().await = existing_models;
+    }
+
+    async fn apply_prompt_pack(&self, prompt_pack: PromptPack) {
+        let mut models = self.remote_models.write().await;
+        model_info::apply_prompt_pack_overrides(&mut models, &prompt_pack);
     }
 
     /// Attempt to satisfy the refresh from the cache when it matches the provider and TTL.

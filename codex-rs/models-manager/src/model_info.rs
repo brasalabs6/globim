@@ -10,14 +10,10 @@ use codex_protocol::openai_models::WebSearchToolType;
 use codex_protocol::openai_models::default_input_modalities;
 
 use crate::config::ModelsManagerConfig;
+use crate::prompt_catalog::PromptPack;
 use codex_utils_output_truncation::approx_bytes_for_tokens;
 use tracing::warn;
 
-pub const BASE_INSTRUCTIONS: &str = include_str!("../prompt.md");
-const LOCAL_FRIENDLY_TEMPLATE: &str =
-    include_str!("../../core/templates/personalities/gpt-5.2-codex_friendly.md");
-const LOCAL_PRAGMATIC_TEMPLATE: &str =
-    include_str!("../../core/templates/personalities/gpt-5.2-codex_pragmatic.md");
 const PERSONALITY_PLACEHOLDER: &str = "{{ personality }}";
 
 pub fn with_config_overrides(mut model: ModelInfo, config: &ModelsManagerConfig) -> ModelInfo {
@@ -70,19 +66,27 @@ pub(crate) fn apply_local_prompt_overrides(
 ) -> ModelInfo {
     if let Some(local_model) = local_model {
         model.base_instructions = local_model.base_instructions.clone();
-        if local_model.model_messages.is_some() {
-            model.model_messages = local_model.model_messages.clone();
-        }
-    } else if is_goblins_managed_model(&model.slug) {
-        model.base_instructions = BASE_INSTRUCTIONS.to_string();
-        model.model_messages = local_personality_messages_for_slug(&model.slug);
-    }
-
-    if model.model_messages.is_none() {
-        model.model_messages = local_personality_messages_for_slug(&model.slug);
+        model.model_messages = local_model.model_messages.clone();
+    } else {
+        apply_prompt_pack_override(&mut model, &PromptPack::fallback());
     }
 
     model
+}
+
+pub(crate) fn apply_prompt_pack_overrides(models: &mut [ModelInfo], prompt_pack: &PromptPack) {
+    for model in models {
+        apply_prompt_pack_override(model, prompt_pack);
+    }
+}
+
+pub(crate) fn apply_prompt_pack_override(model: &mut ModelInfo, prompt_pack: &PromptPack) {
+    model.base_instructions = prompt_pack.goblin.clone();
+    model.model_messages = Some(local_personality_messages(prompt_pack));
+}
+
+pub fn apply_fallback_prompt_override(model: &mut ModelInfo) {
+    apply_prompt_pack_override(model, &PromptPack::fallback());
 }
 
 /// Build a minimal fallback model descriptor for missing/unknown slugs.
@@ -101,8 +105,8 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
         additional_speed_tiers: Vec::new(),
         availability_nux: None,
         upgrade: None,
-        base_instructions: BASE_INSTRUCTIONS.to_string(),
-        model_messages: local_personality_messages_for_slug(slug),
+        base_instructions: PromptPack::fallback().goblin,
+        model_messages: Some(local_personality_messages(&PromptPack::fallback())),
         supports_reasoning_summaries: false,
         default_reasoning_summary: ReasoningSummary::Auto,
         support_verbosity: false,
@@ -123,54 +127,15 @@ pub fn model_info_from_slug(slug: &str) -> ModelInfo {
     }
 }
 
-fn local_personality_messages_for_slug(slug: &str) -> Option<ModelMessages> {
-    if is_goblins_managed_model(slug) {
-        let insertion_index = ["\n\n# Project Docs Spec", "\n\n# General"]
-            .iter()
-            .filter_map(|marker| BASE_INSTRUCTIONS.find(marker))
-            .min();
-        let instructions_template = if let Some(insertion_index) = insertion_index {
-            let (identity, instructions) = BASE_INSTRUCTIONS.split_at(insertion_index);
-            format!("{identity}\n\n{PERSONALITY_PLACEHOLDER}{instructions}")
-        } else {
-            format!("{PERSONALITY_PLACEHOLDER}\n\n{BASE_INSTRUCTIONS}")
-        };
-
-        Some(ModelMessages {
-            instructions_template: Some(instructions_template),
-            instructions_variables: Some(ModelInstructionsVariables {
-                personality_default: Some(String::new()),
-                personality_friendly: Some(LOCAL_FRIENDLY_TEMPLATE.to_string()),
-                personality_pragmatic: Some(LOCAL_PRAGMATIC_TEMPLATE.to_string()),
-            }),
-        })
-    } else {
-        None
+fn local_personality_messages(prompt_pack: &PromptPack) -> ModelMessages {
+    ModelMessages {
+        instructions_template: Some(PERSONALITY_PLACEHOLDER.to_string()),
+        instructions_variables: Some(ModelInstructionsVariables {
+            personality_default: Some(prompt_pack.goblin.clone()),
+            personality_friendly: Some(prompt_pack.friendly.clone()),
+            personality_pragmatic: Some(prompt_pack.pragmatic.clone()),
+        }),
     }
-}
-
-fn is_goblins_managed_model(slug: &str) -> bool {
-    let slug = slug.split_once('/').map_or(slug, |(_, suffix)| suffix);
-    const MANAGED_MODEL_SLUGS: &[&str] = &[
-        "gpt-5.5",
-        "gpt-5.4",
-        "gpt-5.4-mini",
-        "gpt-5.3-codex",
-        "gpt-5.2",
-        "gpt-5.2-codex",
-        "exp-codex-personality",
-        "codex-auto-review",
-    ];
-    for managed_slug in MANAGED_MODEL_SLUGS {
-        if slug == *managed_slug
-            || slug
-                .strip_prefix(managed_slug)
-                .is_some_and(|suffix| suffix.starts_with('-'))
-        {
-            return true;
-        }
-    }
-    false
 }
 
 #[cfg(test)]

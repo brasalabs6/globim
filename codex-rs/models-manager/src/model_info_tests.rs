@@ -3,12 +3,19 @@ use crate::ModelsManagerConfig;
 use codex_protocol::config_types::Personality;
 use pretty_assertions::assert_eq;
 
+fn personality_enabled_config() -> ModelsManagerConfig {
+    ModelsManagerConfig {
+        personality_enabled: true,
+        ..Default::default()
+    }
+}
+
 #[test]
 fn reasoning_summaries_override_true_enables_support() {
     let model = model_info_from_slug("unknown-model");
     let config = ModelsManagerConfig {
         model_supports_reasoning_summaries: Some(true),
-        ..Default::default()
+        ..personality_enabled_config()
     };
 
     let updated = with_config_overrides(model.clone(), &config);
@@ -24,7 +31,7 @@ fn reasoning_summaries_override_false_does_not_disable_support() {
     model.supports_reasoning_summaries = true;
     let config = ModelsManagerConfig {
         model_supports_reasoning_summaries: Some(false),
-        ..Default::default()
+        ..personality_enabled_config()
     };
 
     let updated = with_config_overrides(model.clone(), &config);
@@ -37,7 +44,7 @@ fn reasoning_summaries_override_false_is_noop_when_model_is_false() {
     let model = model_info_from_slug("unknown-model");
     let config = ModelsManagerConfig {
         model_supports_reasoning_summaries: Some(false),
-        ..Default::default()
+        ..personality_enabled_config()
     };
 
     let updated = with_config_overrides(model.clone(), &config);
@@ -52,7 +59,7 @@ fn model_context_window_override_clamps_to_max_context_window() {
     model.max_context_window = Some(400_000);
     let config = ModelsManagerConfig {
         model_context_window: Some(500_000),
-        ..Default::default()
+        ..personality_enabled_config()
     };
 
     let updated = with_config_overrides(model.clone(), &config);
@@ -67,7 +74,7 @@ fn model_context_window_uses_model_value_without_override() {
     let mut model = model_info_from_slug("unknown-model");
     model.context_window = Some(273_000);
     model.max_context_window = Some(400_000);
-    let config = ModelsManagerConfig::default();
+    let config = personality_enabled_config();
 
     let updated = with_config_overrides(model.clone(), &config);
 
@@ -75,33 +82,12 @@ fn model_context_window_uses_model_value_without_override() {
 }
 
 #[test]
-fn goblins_managed_model_matching_covers_current_and_namespaced_slugs() {
-    let managed_slugs = [
-        "gpt-5.5",
-        "gpt-5.4",
-        "gpt-5.4-mini",
-        "gpt-5.3-codex",
-        "gpt-5.3-codex-test",
-        "custom/gpt-5.3-codex",
-        "gpt-5.2",
-        "codex-auto-review",
-    ];
-
-    for slug in managed_slugs {
-        assert!(
-            is_goblins_managed_model(slug),
-            "expected managed slug {slug}"
-        );
-    }
-    assert!(!is_goblins_managed_model("unknown-model"));
-}
-
-#[test]
-fn fallback_model_instructions_use_current_goblins_identity() {
-    let model = model_info_from_slug("custom/gpt-5.3-codex");
+fn fallback_model_instructions_use_standalone_personality_prompt() {
+    let model = model_info_from_slug("unknown-model");
     let instructions = model.get_model_instructions(Some(Personality::Pragmatic));
 
     assert!(instructions.contains("You are a Goblin."));
+    assert!(instructions.contains("# Personality"));
     assert!(instructions.contains("You happen to live in a terminal and work with code"));
     assert!(instructions.contains("You run inside the Goblins CLI"));
     assert!(instructions.contains("# Project Docs Spec"));
@@ -112,4 +98,14 @@ fn fallback_model_instructions_use_current_goblins_identity() {
     assert_eq!(instructions.matches("You are a Goblin.").count(), 1);
     assert!(!instructions.contains("You are a Goblins."));
     assert!(!instructions.contains("You are a Goblin:"));
+}
+
+#[test]
+fn personality_none_uses_goblin_base_prompt() {
+    let model = model_info_from_slug("unknown-model");
+    let instructions = model.get_model_instructions(Some(Personality::None));
+
+    assert!(instructions.contains("You are a Goblin."));
+    assert!(!instructions.contains("# Personality"));
+    assert!(instructions.contains("# Project Docs Spec"));
 }

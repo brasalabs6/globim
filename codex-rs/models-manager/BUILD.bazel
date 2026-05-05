@@ -4,9 +4,9 @@ codex_rust_crate(
     name = "models-manager",
     crate_name = "codex_models_manager",
     compile_data = [
-        "//codex-rs/core:templates/personalities/gpt-5.2-codex_friendly.md",
-        "//codex-rs/core:templates/personalities/gpt-5.2-codex_pragmatic.md",
+        "//prompts:goblin.md",
+        "//prompts:personalities/friendly.md",
+        "//prompts:personalities/pragmatic.md",
         "models.json",
-        "prompt.md",
     ],
 )

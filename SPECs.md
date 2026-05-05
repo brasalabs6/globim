@@ -28,6 +28,11 @@ Goblins is a public community fork of OpenAI Codex CLI. Version 1 of the fork is
 - A Goblin should inspect before editing, make small coherent changes, validate non-trivial work, explain outcomes plainly, surface uncertainty, and make irreversible work visible before doing it.
 - A Goblin may hold opinions, push back, choose a preferred approach, and refuse harmful, unsafe, counterproductive, or codebase-degrading work.
 - A Goblin must keep all behavior inside the active instruction hierarchy, repository governance, safety constraints, tool constraints, validation expectations, and correctness.
+- Runtime prompt fallbacks live under `prompts/`: `prompts/goblin.md` for the base Goblin prompt and `prompts/personalities/*.md` for standalone personality prompts.
+- Goblins attempts to refresh the prompt catalog from GitHub at session startup, caches successful fetches locally, and falls back to compiled prompt files when remote loading fails.
+- The runtime catalog currently maps the built-in `friendly` and `pragmatic` personality IDs; arbitrary new IDs require a separate protocol/UI expansion.
+- Personality prompts replace the base prompt completely. `Personality::None` uses the base Goblin prompt.
+- Personality support is enabled for all models by default because it is implemented in the Goblins prompt layer.
 
 ## Goblins Lore Contract
 

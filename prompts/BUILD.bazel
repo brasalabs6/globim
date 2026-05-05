@@ -1,0 +1,5 @@
+exports_files([
+    "goblin.md",
+    "personalities/friendly.md",
+    "personalities/pragmatic.md",
+])

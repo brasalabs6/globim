@@ -6234,8 +6234,7 @@ impl ChatWidget {
         let personality = self
             .config
             .personality
-            .filter(|_| self.config.features.enabled(Feature::Personality))
-            .filter(|_| self.current_model_supports_personality());
+            .filter(|_| self.config.features.enabled(Feature::Personality));
         let service_tier = match self.config.service_tier {
             Some(service_tier) => Some(Some(service_tier)),
             None if self.config.notices.fast_default_opt_out == Some(true) => Some(None),
@@ -8521,20 +8520,12 @@ impl ChatWidget {
             );
             return;
         }
-        if !self.current_model_supports_personality() {
-            let current_model = self.current_model();
-            self.add_error_message(format!(
-                "Current model ({current_model}) doesn't support personalities. Try /model to pick a different model."
-            ));
-            return;
-        }
         self.open_personality_popup_for_current_model();
     }
 
     fn open_personality_popup_for_current_model(&mut self) {
         let current_personality = self.config.personality.unwrap_or(Personality::Friendly);
         let personalities = [Personality::Friendly, Personality::Pragmatic];
-        let supports_personality = self.current_model_supports_personality();
 
         let items: Vec<SelectionItem> = personalities
             .into_iter()
@@ -8562,7 +8553,7 @@ impl ChatWidget {
                     name,
                     description,
                     is_current: current_personality == personality,
-                    is_disabled: !supports_personality,
+                    is_disabled: false,
                     actions,
                     dismiss_on_select: true,
                     ..Default::default()
@@ -10518,20 +10509,6 @@ impl ChatWidget {
     fn sync_goal_command_enabled(&mut self) {
         self.bottom_pane
             .set_goal_command_enabled(self.config.features.enabled(Feature::Goals));
-    }
-
-    fn current_model_supports_personality(&self) -> bool {
-        let model = self.current_model();
-        self.model_catalog
-            .try_list_models()
-            .ok()
-            .and_then(|models| {
-                models
-                    .into_iter()
-                    .find(|preset| preset.model == model)
-                    .map(|preset| preset.supports_personality)
-            })
-            .unwrap_or(false)
     }
 
     fn model_supports_fast_mode(&self, model: &str) -> bool {
