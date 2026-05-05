@@ -26,7 +26,8 @@ Current high-level flow:
 
 Source references:
 
-- `codex-cli/bin/goblin.js:15-95`
+- `codex-cli/bin/goblin.js:15-98`
+- `codex-cli/bin/goblin.js:141-209`
 - `codex-rs/cli/src/main.rs:70-176`
 - `codex-rs/cli/src/main.rs:733-890`
 - `codex-rs/tui/src/lib.rs:449-496`
@@ -134,3 +135,11 @@ Source references:
 - Treat TUI/app-server adapter code as current migration code, not as the target
   architecture for new app-server-backed features.
 
+Read next:
+
+- [Repository Map](repository-map.md) for ownership boundaries.
+- [Runtime Harness](runtime-harness.md) for request-to-turn flow.
+- [State And Persistence](state-persistence.md) for rollout, SQLite, and thread
+  storage.
+- [App-Server Protocol](../protocol/app-server.md) for external client APIs.
+- [Tools Overview](../tools/overview.md) for tool schema/runtime boundaries.

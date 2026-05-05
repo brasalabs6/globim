@@ -114,7 +114,7 @@ Source references:
 
 - `codex-rs/core/src/agent/control.rs:632-691`
 - `codex-rs/core/src/agent/mailbox.rs:11-71`
-- `codex-rs/core/src/session/session.rs:3103-3218`
+- `codex-rs/core/src/session/mod.rs:3103-3218`
 - `codex-rs/core/src/session/handlers.rs:319-332`
 - `codex-rs/core/src/session/handlers.rs:1068-1070`
 - `codex-rs/core/src/session/turn.rs:1944-1983`
@@ -169,6 +169,9 @@ Source references:
 - `AgentRegistry` reservations must be committed or released so spawn slots,
   paths, and nicknames do not leak.
 - `AgentPath` task names must be lowercase ASCII letters, digits, or underscores.
+- Agent paths are rooted at `/root` for normal collaboration and `/morpheus`
+  for special internal roots. Reserved path segments such as `root`, `.`, and
+  `..`, names with slashes, and non-lowercase task names are invalid.
 - Full-history fork rejects role/model/reasoning overrides.
 - Child config must inherit live runtime provider, model, reasoning, approvals,
   sandbox, permission profile, cwd, shell policy, and base instructions.
@@ -176,6 +179,8 @@ Source references:
   current-turn delivery is explicitly accepted.
 - TUI/app metadata hydration must be preserved because replay items may only
   contain ids/status maps and need cached or `thread/read` metadata.
+- Keep v1 depth limits and v2 path/depth behavior explicit when changing spawn
+  handlers; they do not fail in exactly the same place.
 
 Source references:
 
@@ -185,9 +190,19 @@ Source references:
 - `codex-rs/core/src/agent/registry.rs:331-339`
 - `codex-rs/protocol/src/agent_path.rs:17-72`
 - `codex-rs/protocol/src/agent_path.rs:125-180`
+- `codex-rs/core/src/tools/handlers/multi_agents_v2/spawn.rs:35-260`
 - `codex-rs/core/src/tools/handlers/multi_agents_common.rs:241-279`
 - `codex-rs/tui/src/app/thread_routing.rs:874-964`
 - `codex-rs/tui/src/app/session_lifecycle.rs:520-616`
+
+## Read Next
+
+- [Agent Jobs](agent-jobs.md) for Spawn CSV fanout and worker result reporting.
+- [External Agent Migration And Sessions](external-agent-migration-and-sessions.md)
+  for importing compatible external-agent config and sessions.
+- [Thread Goals](../features/goal.md) when subagent work needs durable
+  long-running objectives.
+- [Tool Registry](../tools/tool-registry.md) for collaboration tool exposure.
 
 ## Extension Checklist
 
@@ -199,4 +214,3 @@ Source references:
   changes.
 - Add tests in `codex-rs/core/src/tools/handlers/multi_agents_tests.rs` and
   agent control tests for spawn/resume/close/list/mailbox behavior.
-

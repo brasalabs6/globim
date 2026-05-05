@@ -70,13 +70,17 @@ Source references:
 - a JSON function tool with one patch string.
 
 The grammar supports add, delete, update, move, context, changed lines, and
-end-of-file markers. The tool description requires repository-relative file
-paths.
+end-of-file markers. The JSON tool description tells the model to use relative
+paths, and the runtime resolves relative patch paths against the working
+directory before applying changes. Do not describe this as a repository-root
+contract unless the caller/runtime layer explicitly enforces that boundary.
 
 Source references:
 
 - `codex-rs/tools/src/apply_patch_tool.rs:10-122`
 - `codex-rs/tools/src/tool_apply_patch.lark:1-19`
+- `codex-rs/apply-patch/src/lib.rs:132-144`
+- `codex-rs/apply-patch/src/lib.rs:663-675`
 
 ## apply_patch Runtime
 
@@ -134,4 +138,3 @@ Test surfaces:
 
 - `codex-rs/core/tests/suite/apply_patch_cli.rs:49-220`
 - `codex-rs/core/tests/suite/unified_exec.rs:230-364`
-

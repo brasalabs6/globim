@@ -106,13 +106,41 @@ Source references:
 
 ## Documentation-Only Validation
 
-For `.llms/reference` docs, minimum validation is:
+For `.llms/reference` docs, minimum smoke validation is:
 
 ```bash
 git diff --check -- .llms/reference
 find .llms/reference -type f -name '*.md' | sort
-rg -n 'TO''DO|TB''D|FIX''ME|line_''unavailable' .llms/reference
+! rg -n 'TO''DO|TB''D|FIX''ME|line_''unavailable' .llms/reference
 ```
+
+The smoke commands do not validate Markdown links or source-reference line
+ranges. Run a dedicated checker for those when a doc pass changes many
+repository-relative references.
 
 For code changes, run the narrowest relevant tests first, then widen according
 to blast radius.
+
+## Common Commands
+
+Run commands from `codex-rs` unless the command says otherwise:
+
+```bash
+cargo test -p codex-tools tool_registry_plan
+cargo test -p codex-core --test all unified_exec
+cargo test -p codex-mcp
+cargo test -p codex-state goals
+cargo test -p codex-app-server --test all v2
+cargo test -p codex-app-server-protocol
+cargo test -p codex-tui
+cargo insta pending-snapshots -p codex-tui
+```
+
+For package or release identity changes, validate from the repository root with
+the release/package commands documented in
+[Fork Packaging And Release](../release/fork-packaging-and-release.md).
+
+## Read Next
+
+- [Testing Matrix](../testing/test-matrix.md) for subsystem-specific commands.
+- [App-Server Protocol](../protocol/app-server.md) for API codegen rules.

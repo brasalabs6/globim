@@ -34,8 +34,25 @@ Source references:
 - [Subagents And Orchestration](../agents/subagents.md): collaboration tools,
   legacy v1 agent ids, MultiAgentV2 task paths, `AgentControl`, registry,
   mailbox, and app/TUI metadata.
+- [Agent Jobs](../agents/agent-jobs.md): CSV fanout, persisted job/item state,
+  worker sessions, report tools, concurrency caps, and exported status CSVs.
+- [External Agent Migration And Sessions](../agents/external-agent-migration-and-sessions.md):
+  item-based imports for compatible agent configs, hooks, commands, and session
+  records.
+- [Config And Feature Flags](../config/config-and-feature-flags.md): config
+  layering, profiles, feature resolution, managed requirements, and unstable
+  feature warnings.
+- [Turn Context, Compaction, Realtime, And Review](../runtime/turn-context-compaction-realtime-review.md):
+  durable turn context, compaction, realtime conversation state, and review
+  request/runtime events.
 - [Tools Overview](../tools/overview.md): shell, unified exec, patch, MCP,
   resources, list_dir, parallelism, and validation harnesses.
+- [Cloud Tasks And Requirements](../cloud/cloud-tasks-and-requirements.md):
+  cloud task CLI flows, backend auth, cloud-managed requirements, and
+  fail-closed config constraints.
+- [Remote Control And Device Keys](../runtime/remote-control-and-device-keys.md):
+  remote-control transport, enrollment, stream replay, local-only device-key
+  APIs, and signing constraints.
 
 ## Current High-Risk Feature Areas
 
@@ -45,6 +62,8 @@ Source references:
   surface.
 - TUI/app-server flow is transitional, so features may still have both core
   event and app-server notification paths.
+- Remote control, external-agent migration, and cloud requirements cross auth,
+  app-server, state, and UI boundaries.
 
 Source references:
 
@@ -52,4 +71,3 @@ Source references:
 - `codex-rs/features/src/lib.rs:834-849`
 - `codex-rs/features/src/lib.rs:975-980`
 - `codex-rs/tui/src/app/app_server_adapter.rs:1-12`
-
