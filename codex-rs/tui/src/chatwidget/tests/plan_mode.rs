@@ -280,7 +280,7 @@ async fn submit_user_message_with_mode_sets_coding_collaboration_mode() {
                     mode: ModeKind::Default,
                     ..
                 }),
-            personality: None,
+            personality: Some(Personality::Pragmatic),
             ..
         } => {}
         other => {
@@ -755,7 +755,7 @@ async fn submit_user_message_with_mode_allows_same_mode_during_running_turn() {
                     mode: ModeKind::Plan,
                     ..
                 }),
-            personality: None,
+            personality: Some(Personality::Pragmatic),
             ..
         } => {}
         other => {
@@ -785,7 +785,7 @@ async fn submit_user_message_with_mode_submits_when_plan_stream_is_not_active() 
     match next_submit_op(&mut op_rx) {
         Op::UserTurn {
             collaboration_mode: Some(CollaborationMode { mode, .. }),
-            personality: None,
+            personality: Some(Personality::Pragmatic),
             ..
         } => assert_eq!(mode, expected_mode),
         other => {

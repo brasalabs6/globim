@@ -757,7 +757,7 @@ async fn interrupted_turn_restore_keeps_active_mode_for_resubmission() {
     match next_submit_op(&mut op_rx) {
         Op::UserTurn {
             collaboration_mode: Some(CollaborationMode { mode, .. }),
-            personality: None,
+            personality: Some(Personality::Pragmatic),
             ..
         } => assert_eq!(mode, expected_mode),
         other => {
