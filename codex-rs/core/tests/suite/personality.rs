@@ -579,6 +579,7 @@ async fn remote_model_friendly_personality_uses_local_prompt_pack() -> anyhow::R
         supported_in_api: true,
         priority: 1,
         additional_speed_tiers: Vec::new(),
+        service_tiers: Vec::new(),
         upgrade: None,
         base_instructions: "base instructions".to_string(),
         model_messages: Some(ModelMessages {
@@ -691,6 +692,7 @@ async fn user_turn_personality_update_uses_local_prompt_pack_for_remote_model() 
         supported_in_api: true,
         priority: 1,
         additional_speed_tiers: Vec::new(),
+        service_tiers: Vec::new(),
         upgrade: None,
         base_instructions: "base instructions".to_string(),
         model_messages: Some(ModelMessages {

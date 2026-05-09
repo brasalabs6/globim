@@ -9,6 +9,7 @@ use codex_app_server_protocol::JSONRPCResponse;
 use codex_app_server_protocol::Model;
 use codex_app_server_protocol::ModelListParams;
 use codex_app_server_protocol::ModelListResponse;
+use codex_app_server_protocol::ModelServiceTier;
 use codex_app_server_protocol::ModelUpgradeInfo;
 use codex_app_server_protocol::ReasoningEffortOption;
 use codex_app_server_protocol::RequestId;
@@ -47,6 +48,15 @@ fn model_from_preset(preset: &ModelPreset) -> Model {
         input_modalities: preset.input_modalities.clone(),
         supports_personality: preset.supports_personality,
         additional_speed_tiers: preset.additional_speed_tiers.clone(),
+        service_tiers: preset
+            .service_tiers
+            .iter()
+            .map(|service_tier| ModelServiceTier {
+                id: service_tier.id.clone(),
+                name: service_tier.name.clone(),
+                description: service_tier.description.clone(),
+            })
+            .collect(),
         is_default: preset.is_default,
     }
 }
