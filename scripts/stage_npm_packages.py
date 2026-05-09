@@ -68,6 +68,16 @@ def parse_args() -> argparse.Namespace:
             "specified target triple. May be repeated. Defaults to all supported targets."
         ),
     )
+    parser.add_argument(
+        "--allow-missing-native-component",
+        dest="allow_missing_native_components",
+        action="append",
+        default=[],
+        help=(
+            "Native component that may be absent from reused workflow artifacts. "
+            "Intended for CI compatibility only; release staging should not use this."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -172,6 +182,8 @@ def main() -> int:
     target_filter = set(args.targets) if args.targets else None
     packages = expand_packages(list(args.packages), target_filter)
     native_components = collect_native_components(packages)
+    allow_missing_native_components = set(args.allow_missing_native_components)
+    native_components_to_install = native_components - allow_missing_native_components
 
     vendor_temp_root: Path | None = None
     vendor_src: Path | None = None
@@ -180,14 +192,14 @@ def main() -> int:
     final_messages = []
 
     try:
-        if native_components:
+        if native_components_to_install:
             workflow_url, resolved_head_sha = resolve_workflow_url(
                 args.release_version, args.workflow_url
             )
             vendor_temp_root = Path(tempfile.mkdtemp(prefix="npm-native-", dir=runner_temp))
             install_native_components(
                 workflow_url,
-                native_components,
+                native_components_to_install,
                 vendor_temp_root,
                 target_filter,
             )
@@ -220,6 +232,9 @@ def main() -> int:
             if target_filter is not None:
                 for target in sorted(target_filter):
                     cmd.extend(["--target", target])
+
+            for component in sorted(allow_missing_native_components):
+                cmd.extend(["--allow-missing-native-component", component])
 
             try:
                 run_command(cmd)

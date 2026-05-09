@@ -165,7 +165,7 @@ jobs:
 
       - name: Cargo build
         shell: bash
-        run: cargo build --target ${{ matrix.target }} --release --timings --bin codex
+        run: cargo build --target ${{ matrix.target }} --release --timings --bin codex --bin bwrap
 
       - name: Stage artifact
         shell: bash
@@ -174,7 +174,9 @@ jobs:
           dest="dist/${{ matrix.target }}"
           mkdir -p "$dest"
           cp "target/${{ matrix.target }}/release/codex" "$dest/codex-${{ matrix.target }}"
+          cp "target/${{ matrix.target }}/release/bwrap" "$dest/bwrap-${{ matrix.target }}"
           zstd -T0 -19 --rm "$dest/codex-${{ matrix.target }}"
+          zstd -T0 -19 --rm "$dest/bwrap-${{ matrix.target }}"
 
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
