@@ -42,6 +42,7 @@ jobs:
             [[ $f == codex-rs/* || $f == tools/argument-comment-lint/* || $f == justfile ]] && argument_comment_lint=true
             [[ $f == defs.bzl || $f == workspace_root_test_launcher.sh.tpl || $f == workspace_root_test_launcher.bat.tpl ]] && argument_comment_lint=true
             [[ $f == tools/argument-comment-lint/* ]] && argument_comment_lint_package=true
+            [[ $f == .github/workflows/* || $f == .github/actions/* || $f == .github/scripts/* ]] && workflows=true
           done
 
           echo "argument_comment_lint=$argument_comment_lint" >> "$GITHUB_OUTPUT"
@@ -79,8 +80,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
       - uses: taiki-e/install-action@44c6d64aa62cd779e873306675c7a58e86d6d532 # v2
         with:
-          tool: cargo-shear
-          version: 1.5.1
+          tool: cargo-shear@1.5.1
       - name: cargo shear
         run: cargo shear
 
