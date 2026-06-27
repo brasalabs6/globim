@@ -79,6 +79,12 @@ jobs:
           echo "${cargo_home}/bin" >> "$GITHUB_PATH"
           : > "${cargo_home}/config.toml"
 
+      - name: Install musl target for rust-toolchain.toml channel
+        if: ${{ runner.os == 'Linux' }}
+        working-directory: codex-rs
+        shell: bash
+        run: rustup target add ${{ matrix.target }}
+
       - name: Restore Cargo release cache
         id: cache_cargo_release_restore
         continue-on-error: true
@@ -159,7 +165,7 @@ jobs:
 
       - name: Configure rusty_v8 musl artifacts
         if: ${{ runner.os == 'Linux' }}
-        uses: ./.github/actions/setup-rusty-v8-musl
+        uses: ./.github/actions/setup-rusty-v8
         with:
           target: ${{ matrix.target }}
 
