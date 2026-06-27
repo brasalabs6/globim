@@ -32,6 +32,7 @@ jobs:
     timeout-minutes: 30
     env:
       NODE_OPTIONS: --max-old-space-size=4096
+      RUST_MIN_STACK: "8388608" # 8 MiB — upstream sets this for personality tests that overflow the default 2 MiB tokio worker stack
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
