@@ -1,6 +1,7 @@
 {
   "name": "@brasalabs/goblins",
-  "version": "0.128.2",
+  "version": "0.142.3",
+  "description": "Goblins is a community fork of OpenAI Codex CLI that runs locally on your computer.",
   "license": "Apache-2.0",
   "bin": {
     "goblin": "bin/goblin.js"
@@ -10,8 +11,7 @@
     "node": ">=16"
   },
   "files": [
-    "bin",
-    "vendor"
+    "bin/codex.js"
   ],
   "repository": {
     "type": "git",

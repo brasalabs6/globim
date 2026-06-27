@@ -3,6 +3,9 @@ use crate::config::NetworkMode;
 use crate::config::NetworkProxyConfig;
 use crate::config::ValidatedUnixSocketPath;
 use crate::mitm::MitmState;
+use crate::mitm_hook::HookEvaluation;
+use crate::mitm_hook::MitmHooksByHost;
+use crate::mitm_hook::evaluate_mitm_hooks;
 use crate::policy::Host;
 use crate::policy::is_loopback_host;
 use crate::policy::is_non_public_ip;
@@ -17,7 +20,6 @@ use crate::state::build_config_state;
 use crate::state::validate_policy_against_constraints;
 use anyhow::Context;
 use anyhow::Result;
-use async_trait::async_trait;
 use codex_utils_absolute_path::AbsolutePathBuf;
 use globset::GlobSet;
 use serde::Serialize;
@@ -25,7 +27,9 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::future::Future;
 use std::net::IpAddr;
+use std::net::SocketAddr;
 use std::path::Path;
+use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
 use time::OffsetDateTime;
@@ -158,43 +162,44 @@ pub struct ConfigState {
     pub allow_set: GlobSet,
     pub deny_set: GlobSet,
     pub mitm: Option<Arc<MitmState>>,
+    pub mitm_hooks: MitmHooksByHost,
     pub constraints: NetworkProxyConstraints,
     pub blocked: VecDeque<BlockedRequest>,
     pub blocked_total: u64,
 }
 
-#[async_trait]
 pub trait ConfigReloader: Send + Sync {
     /// Human-readable description of where config is loaded from, for logs.
     fn source_label(&self) -> String;
 
     /// Return a freshly loaded state if a reload is needed; otherwise, return `None`.
-    async fn maybe_reload(&self) -> Result<Option<ConfigState>>;
+    fn maybe_reload(&self) -> ConfigReloaderFuture<'_, Option<ConfigState>>;
 
     /// Force a reload, regardless of whether a change was detected.
-    async fn reload_now(&self) -> Result<ConfigState>;
+    fn reload_now(&self) -> ConfigReloaderFuture<'_, ConfigState>;
 }
 
-#[async_trait]
+pub type ConfigReloaderFuture<'a, T> = Pin<Box<dyn Future<Output = Result<T>> + Send + 'a>>;
+
 pub trait BlockedRequestObserver: Send + Sync + 'static {
-    async fn on_blocked_request(&self, request: BlockedRequest);
+    fn on_blocked_request(&self, request: BlockedRequest) -> BlockedRequestObserverFuture<'_>;
 }
 
-#[async_trait]
+pub type BlockedRequestObserverFuture<'a> = Pin<Box<dyn Future<Output = ()> + Send + 'a>>;
+
 impl<O: BlockedRequestObserver + ?Sized> BlockedRequestObserver for Arc<O> {
-    async fn on_blocked_request(&self, request: BlockedRequest) {
-        (**self).on_blocked_request(request).await
+    fn on_blocked_request(&self, request: BlockedRequest) -> BlockedRequestObserverFuture<'_> {
+        Box::pin(async move { (**self).on_blocked_request(request).await })
     }
 }
 
-#[async_trait]
 impl<F, Fut> BlockedRequestObserver for F
 where
     F: Fn(BlockedRequest) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = ()> + Send,
+    Fut: Future<Output = ()> + Send + 'static,
 {
-    async fn on_blocked_request(&self, request: BlockedRequest) {
-        (self)(request).await
+    fn on_blocked_request(&self, request: BlockedRequest) -> BlockedRequestObserverFuture<'_> {
+        Box::pin((self)(request))
     }
 }
 
@@ -401,7 +406,18 @@ impl NetworkProxyState {
                 if !is_explicit_local_allowlisted(&allowed_domains, &host) {
                     return Ok(HostBlockDecision::Blocked(HostBlockReason::NotAllowedLocal));
                 }
-            } else if host_resolves_to_non_public_ip(host_str, port).await {
+            } else if host_resolves_to_non_public_ip(
+                host_str,
+                port,
+                DNS_LOOKUP_TIMEOUT,
+                |host, port| async move {
+                    lookup_host((host.as_str(), port))
+                        .await
+                        .map(Iterator::collect)
+                },
+            )
+            .await
+            {
                 return Ok(HostBlockDecision::Blocked(HostBlockReason::NotAllowedLocal));
             }
         }
@@ -573,6 +589,22 @@ impl NetworkProxyState {
         Ok(guard.mitm.clone())
     }
 
+    pub(crate) async fn evaluate_mitm_hook_request(
+        &self,
+        host: &str,
+        req: &rama_http::Request,
+    ) -> Result<HookEvaluation> {
+        self.reload_if_needed().await?;
+        let guard = self.state.read().await;
+        Ok(evaluate_mitm_hooks(&guard.mitm_hooks, host, req))
+    }
+
+    pub async fn host_has_mitm_hooks(&self, host: &str) -> Result<bool> {
+        self.reload_if_needed().await?;
+        let guard = self.state.read().await;
+        Ok(guard.mitm_hooks.contains_key(&normalize_host(host)))
+    }
+
     pub async fn add_allowed_domain(&self, host: &str) -> Result<()> {
         self.update_domain_list(host, DomainListKind::Allow).await
     }
@@ -714,14 +746,23 @@ pub(crate) fn unix_socket_permissions_supported() -> bool {
     cfg!(target_os = "macos")
 }
 
-async fn host_resolves_to_non_public_ip(host: &str, port: u16) -> bool {
+async fn host_resolves_to_non_public_ip<F, Fut>(
+    host: &str,
+    port: u16,
+    lookup_timeout: Duration,
+    lookup: F,
+) -> bool
+where
+    F: FnOnce(String, u16) -> Fut,
+    Fut: Future<Output = std::io::Result<Vec<SocketAddr>>>,
+{
     if let Ok(ip) = host.parse::<IpAddr>() {
         return is_non_public_ip(ip);
     }
 
     // Block the request if this DNS lookup fails. We resolve the hostname again when we connect,
     // so a failed check here does not prove the destination is public.
-    let addrs = match timeout(DNS_LOOKUP_TIMEOUT, lookup_host((host, port))).await {
+    let addrs = match timeout(lookup_timeout, lookup(host.to_string(), port)).await {
         Ok(Ok(addrs)) => addrs,
         Ok(Err(err)) => {
             debug!(
@@ -825,9 +866,23 @@ pub(crate) fn network_proxy_state_for_policy(
     mut network: crate::config::NetworkProxySettings,
 ) -> NetworkProxyState {
     network.enabled = true;
-    network.mode = NetworkMode::Full;
     let config = NetworkProxyConfig { network };
-    let state = build_config_state(config, NetworkProxyConstraints::default()).unwrap();
+    let state = ConfigState {
+        allow_set: crate::policy::compile_allowlist_globset(
+            &config.network.allowed_domains().unwrap_or_default(),
+        )
+        .unwrap(),
+        blocked: VecDeque::new(),
+        blocked_total: 0,
+        config: config.clone(),
+        constraints: NetworkProxyConstraints::default(),
+        deny_set: crate::policy::compile_denylist_globset(
+            &config.network.denied_domains().unwrap_or_default(),
+        )
+        .unwrap(),
+        mitm: None,
+        mitm_hooks: crate::mitm_hook::compile_mitm_hooks(&config).unwrap(),
+    };
 
     NetworkProxyState::with_reloader(state, Arc::new(NoopReloader))
 }
@@ -836,18 +891,17 @@ pub(crate) fn network_proxy_state_for_policy(
 struct NoopReloader;
 
 #[cfg(test)]
-#[async_trait]
 impl ConfigReloader for NoopReloader {
     fn source_label(&self) -> String {
         "test config state".to_string()
     }
 
-    async fn maybe_reload(&self) -> Result<Option<ConfigState>> {
-        Ok(None)
+    fn maybe_reload(&self) -> ConfigReloaderFuture<'_, Option<ConfigState>> {
+        Box::pin(async { Ok(None) })
     }
 
-    async fn reload_now(&self) -> Result<ConfigState> {
-        Err(anyhow::anyhow!("force reload is not supported in tests"))
+    fn reload_now(&self) -> ConfigReloaderFuture<'_, ConfigState> {
+        Box::pin(async { Err(anyhow::anyhow!("force reload is not supported in tests")) })
     }
 }
 
@@ -1358,6 +1412,65 @@ mod tests {
                 .unwrap(),
             HostBlockDecision::Blocked(HostBlockReason::NotAllowedLocal)
         );
+    }
+
+    #[tokio::test]
+    async fn host_resolves_to_non_public_ip_blocks_on_dns_lookup_timeout() {
+        let blocked = host_resolves_to_non_public_ip(
+            "slow.example",
+            /*port*/ 80,
+            Duration::from_millis(1),
+            |_host, _port| async {
+                std::future::pending::<std::io::Result<Vec<SocketAddr>>>().await
+            },
+        )
+        .await;
+
+        assert!(blocked);
+    }
+
+    #[tokio::test]
+    async fn host_resolves_to_non_public_ip_blocks_on_dns_lookup_error() {
+        let blocked = host_resolves_to_non_public_ip(
+            "error.example",
+            /*port*/ 80,
+            Duration::from_millis(10),
+            |_host, _port| async {
+                Err::<Vec<SocketAddr>, std::io::Error>(std::io::Error::new(
+                    std::io::ErrorKind::TimedOut,
+                    "forced failure",
+                ))
+            },
+        )
+        .await;
+
+        assert!(blocked);
+    }
+
+    #[tokio::test]
+    async fn host_resolves_to_non_public_ip_blocks_private_resolution() {
+        let blocked = host_resolves_to_non_public_ip(
+            "local.example",
+            /*port*/ 80,
+            Duration::from_millis(10),
+            |_host, _port| async { Ok(vec!["127.0.0.1:80".parse().unwrap()]) },
+        )
+        .await;
+
+        assert!(blocked);
+    }
+
+    #[tokio::test]
+    async fn host_resolves_to_non_public_ip_allows_public_resolution() {
+        let blocked = host_resolves_to_non_public_ip(
+            "public.example",
+            /*port*/ 80,
+            Duration::from_millis(10),
+            |_host, _port| async { Ok(vec!["8.8.8.8:80".parse().unwrap()]) },
+        )
+        .await;
+
+        assert!(!blocked);
     }
 
     #[test]

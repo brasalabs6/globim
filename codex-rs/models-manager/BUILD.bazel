@@ -2,11 +2,11 @@ load("//:defs.bzl", "codex_rust_crate")
 
 codex_rust_crate(
     name = "models-manager",
-    crate_name = "codex_models_manager",
     compile_data = [
         "//prompts:goblin.md",
         "//prompts:personalities/friendly.md",
         "//prompts:personalities/pragmatic.md",
         "models.json",
     ],
+    crate_name = "codex_models_manager",
 )
