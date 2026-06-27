@@ -1,5 +1,6 @@
 use super::*;
 use crate::ModelsManagerConfig;
+use crate::model_info::apply_fallback_prompt_override;
 use chrono::Utc;
 use codex_app_server_protocol::AuthMode;
 use codex_login::AuthCredentialsStoreMode;
@@ -393,7 +394,6 @@ async fn refresh_available_models_preserves_goblins_prompt_fields() {
     let endpoint = TestModelsEndpoint::new(vec![vec![remote_gpt_5_5, remote_gpt_5_3]]);
     let manager = openai_manager_for_tests(codex_home.path().to_path_buf(), endpoint);
 
-
     manager
         .refresh_available_models(RefreshStrategy::OnlineIfUncached)
         .await
@@ -438,7 +438,11 @@ async fn refresh_available_models_uses_remote_only_catalog_for_chatgpt_auth() {
         .await
         .expect("refresh succeeds");
 
-    assert_eq!(manager.get_remote_models().await, remote_models);
+    let mut expected = remote_models;
+    for model in &mut expected {
+        apply_fallback_prompt_override(model);
+    }
+    assert_eq!(manager.get_remote_models().await, expected);
     assert_eq!(endpoint.fetch_count(), 1, "expected a single model fetch");
 }
 
@@ -468,7 +472,11 @@ async fn refresh_available_models_uses_cached_remote_only_catalog_for_chatgpt_au
         .await
         .expect("cached refresh succeeds");
 
-    assert_eq!(cache_manager.get_remote_models().await, remote_models);
+    let mut expected = remote_models;
+    for model in &mut expected {
+        apply_fallback_prompt_override(model);
+    }
+    assert_eq!(cache_manager.get_remote_models().await, expected);
     assert_eq!(
         cache_endpoint.fetch_count(),
         0,
@@ -533,7 +541,9 @@ async fn refresh_available_models_merges_hidden_only_chatgpt_remote_with_bundled
     let endpoint = TestModelsEndpoint::new(vec![vec![hidden_remote.clone()]]);
     let manager = openai_manager_for_tests(codex_home.path().to_path_buf(), endpoint);
     let mut expected = load_remote_models_from_file().expect("bundled models should parse");
-    expected.push(hidden_remote);
+    let mut overridden_hidden = hidden_remote.clone();
+    apply_fallback_prompt_override(&mut overridden_hidden);
+    expected.push(overridden_hidden);
 
     manager
         .refresh_available_models(RefreshStrategy::OnlineIfUncached)
@@ -565,7 +575,11 @@ async fn refresh_available_models_keeps_merging_for_api_auth() {
         ))),
     );
     let mut expected = load_remote_models_from_file().expect("bundled models should parse");
-    expected.extend(remote_models);
+    let mut overridden_remote = remote_models.clone();
+    for model in &mut overridden_remote {
+        apply_fallback_prompt_override(model);
+    }
+    expected.extend(overridden_remote);
 
     manager
         .refresh_available_models(RefreshStrategy::OnlineIfUncached)
@@ -574,7 +588,6 @@ async fn refresh_available_models_keeps_merging_for_api_auth() {
 
     assert_eq!(manager.get_remote_models().await, expected);
     assert_eq!(endpoint.fetch_count(), 1, "expected a single model fetch");
-
 }
 
 #[tokio::test]

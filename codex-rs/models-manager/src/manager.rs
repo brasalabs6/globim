@@ -191,7 +191,10 @@ pub trait ModelsManager: fmt::Debug + Send + Sync {
     fn refresh_if_new_etag(&self, etag: String) -> ModelsManagerFuture<'_, ()>;
 
     /// Refresh the Goblins prompt catalog used to build model instructions.
-    fn refresh_prompt_catalog(&self, _refresh_strategy: RefreshStrategy) -> ModelsManagerFuture<'_, ()> {
+    fn refresh_prompt_catalog(
+        &self,
+        _refresh_strategy: RefreshStrategy,
+    ) -> ModelsManagerFuture<'_, ()> {
         Box::pin(async {})
     }
 }
@@ -262,7 +265,6 @@ impl ModelsManager for OpenAiModelsManager {
             refresh_strategy,
         ))
     }
-    }
 
     fn get_remote_models(&self) -> ModelsManagerFuture<'_, Vec<ModelInfo>> {
         Box::pin(async move { self.remote_models.read().await.clone() })
@@ -282,6 +284,23 @@ impl ModelsManager for OpenAiModelsManager {
 
     fn refresh_if_new_etag(&self, etag: String) -> ModelsManagerFuture<'_, ()> {
         Box::pin(OpenAiModelsManager::refresh_if_new_etag(self, etag))
+    }
+
+    fn refresh_prompt_catalog(
+        &self,
+        refresh_strategy: RefreshStrategy,
+    ) -> ModelsManagerFuture<'_, ()> {
+        Box::pin(async move {
+            let prompt_pack = match refresh_strategy {
+                RefreshStrategy::Offline => {
+                    self.prompt_catalog_loader.load_cached_or_fallback().await
+                }
+                RefreshStrategy::Online | RefreshStrategy::OnlineIfUncached => {
+                    self.prompt_catalog_loader.load_remote_or_cache().await
+                }
+            };
+            self.apply_prompt_pack(prompt_pack).await;
+        })
     }
 }
 
@@ -308,19 +327,6 @@ impl OpenAiModelsManager {
             error!("failed to refresh available models: {err}");
         }
     }
-
-    fn refresh_prompt_catalog(&self, refresh_strategy: RefreshStrategy) -> ModelsManagerFuture<'_, ()> {
-        Box::pin(async move {
-            let prompt_pack = match refresh_strategy {
-                RefreshStrategy::Offline => self.prompt_catalog_loader.load_cached_or_fallback().await,
-                RefreshStrategy::Online | RefreshStrategy::OnlineIfUncached => {
-                    self.prompt_catalog_loader.load_remote_or_cache().await
-                }
-            };
-            self.apply_prompt_pack(prompt_pack).await;
-        })
-    }
-}
 
     /// Refresh available models according to the specified strategy.
     async fn refresh_available_models(&self, refresh_strategy: RefreshStrategy) -> CoreResult<()> {
@@ -389,6 +395,8 @@ impl OpenAiModelsManager {
                     .is_some_and(AuthMode::has_chatgpt_account)
             });
         if should_use_remote_models_only {
+            let mut models = models;
+            model_info::apply_prompt_pack_overrides(&mut models, &PromptPack::fallback());
             *self.remote_models.write().await = models;
             return;
         }

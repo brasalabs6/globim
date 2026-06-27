@@ -11,7 +11,7 @@
 
 - Goblins releases start from the latest stable upstream `rust-v*` release unless a maintainer explicitly chooses an alpha, beta, or development snapshot.
 - The first Goblins release is `0.125.1`, based on upstream `rust-v0.125.0` / npm `@openai/codex@0.125.0`.
-- The current upgrade target is `0.128.2`, based on upstream `rust-v0.128.0` / npm `@openai/codex@0.128.0`.
+- The current upgrade target is `0.142.3`, based on upstream `rust-v0.142.3` / npm `@openai/codex@0.142.3`.
 - Release tags use the upstream-compatible `rust-v*.*.*` format. The first fork tag is `rust-v0.125.1`.
 
 ## Public Surface

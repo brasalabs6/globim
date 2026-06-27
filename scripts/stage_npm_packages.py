@@ -78,7 +78,9 @@ def collect_native_components(packages: list[str]) -> set[str]:
     return components
 
 
-def expand_packages(packages: list[str], target_filter: set[str] | None = None) -> list[str]:
+def expand_packages(
+    packages: list[str], target_filter: set[str] | None = None
+) -> list[str]:
     expanded: list[str] = []
     for package in packages:
         for expanded_package in PACKAGE_EXPANSIONS.get(package, [package]):
@@ -115,7 +117,9 @@ def resolve_release_workflow(version: str) -> dict:
     )
     workflow = json.loads(stdout or "null")
     if not workflow:
-        raise RuntimeError(f"Unable to find rust-release workflow for version {version}.")
+        raise RuntimeError(
+            f"Unable to find rust-release workflow for version {version}."
+        )
     return workflow
 
 
@@ -184,7 +188,9 @@ def main() -> int:
             workflow_url, resolved_head_sha = resolve_workflow_url(
                 args.release_version, args.workflow_url
             )
-            vendor_temp_root = Path(tempfile.mkdtemp(prefix="npm-native-", dir=runner_temp))
+            vendor_temp_root = Path(
+                tempfile.mkdtemp(prefix="npm-native-", dir=runner_temp)
+            )
             install_native_components(
                 workflow_url,
                 native_components,
@@ -199,9 +205,13 @@ def main() -> int:
         for package in packages:
             safe_package_name = package.replace("@", "").replace("/", "-")
             staging_dir = Path(
-                tempfile.mkdtemp(prefix=f"npm-stage-{safe_package_name}-", dir=runner_temp)
+                tempfile.mkdtemp(
+                    prefix=f"npm-stage-{safe_package_name}-", dir=runner_temp
+                )
             )
-            pack_output = output_dir / tarball_name_for_package(package, args.release_version)
+            pack_output = output_dir / tarball_name_for_package(
+                package, args.release_version
+            )
 
             cmd = [
                 str(BUILD_SCRIPT),

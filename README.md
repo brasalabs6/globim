@@ -24,7 +24,7 @@ Goblins uses the same local-agent foundation as Codex CLI: it can inspect files,
 
 ## Release Base
 
-Goblins `0.142.3` is based on upstream `rust-v0.142.3` / `@openai/codex@0.142.3`, the latest stable release verified for this fork update via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.142.3) and [npm package](https://www.npmjs.com/package/@openai/codex/v/0.128.0).
+Goblins `0.142.3` is based on upstream `rust-v0.142.3` / `@openai/codex@0.142.3`, the latest stable release verified for this fork update via the upstream [GitHub release](https://github.com/openai/codex/releases/tag/rust-v0.142.3) and [npm package](https://www.npmjs.com/package/@openai/codex/v/0.142.3).
 
 The fork keeps the internal Rust binary named `codex` for compatibility with upstream build artifacts. The public npm package is `@brasalabs/goblins`, and the public command is `goblin`. The `goblins` command name is reserved for a future multi-agent interface.
 
