@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "rust-v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build and release (e.g. rust-v0.142.3-beta.1)"
+        required: true
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,19 +18,39 @@ concurrency:
 jobs:
   tag-check:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve_tag.outputs.tag }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0
-      - name: Validate tag, version, and branch contract
+      - name: Resolve tag name
+        id: resolve_tag
         shell: bash
         run: |
           set -euo pipefail
-          [[ "${GITHUB_REF_TYPE}" == "tag" ]] || { echo "Not a tag push"; exit 1; }
-          [[ "${GITHUB_REF_NAME}" =~ ^rust-v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)(\.[0-9]+)?)?$ ]] \
-            || { echo "Tag '${GITHUB_REF_NAME}' does not match rust-vX.Y.Z"; exit 1; }
+          # On a tag push, GITHUB_REF_NAME is the tag. On workflow_dispatch,
+          # the tag is passed via the `tag` input.
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            tag="${{ inputs.tag }}"
+          else
+            tag="${GITHUB_REF_NAME}"
+          fi
+          [[ -n "${tag}" ]] || { echo "No tag resolved"; exit 1; }
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+      - name: Validate tag, version, and branch contract
+        env:
+          RELEASE_TAG: ${{ steps.resolve_tag.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${RELEASE_TAG}" =~ ^rust-v[0-9]+\.[0-9]+\.[0-9]+(-(alpha|beta)(\.[0-9]+)?)?$ ]] \
+            || { echo "Tag '${RELEASE_TAG}' does not match rust-vX.Y.Z"; exit 1; }
 
-          tag_ver="${GITHUB_REF_NAME#rust-v}"
+          # Checkout the tagged commit so version files match the tag.
+          git checkout "${RELEASE_TAG}" -- codex-rs/Cargo.toml codex-cli/package.json
+
+          tag_ver="${RELEASE_TAG#rust-v}"
           cargo_ver="$(grep -m1 '^version' codex-rs/Cargo.toml | sed -E 's/version *= *"([^"]+)".*/\1/')"
           npm_ver="$(node -p "require('./codex-cli/package.json').version")"
 
@@ -33,12 +59,12 @@ jobs:
           [[ "${tag_ver}" == "${npm_ver}" ]] \
             || { echo "Tag ${tag_ver} does not match codex-cli/package.json ${npm_ver}"; exit 1; }
 
-          tag_commit="$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
+          tag_commit="$(git rev-parse "${RELEASE_TAG}^{commit}")"
 
           # For stable releases (no -alpha/-beta suffix), the tag must point
           # at a commit on the goblins branch. Preview releases (-alpha/-beta)
           # may point at commits on any branch (e.g. a feature branch PR).
-          if [[ ! "${GITHUB_REF_NAME}" =~ -alpha\. ]] && [[ ! "${GITHUB_REF_NAME}" =~ -beta\. ]]; then
+          if [[ ! "${RELEASE_TAG}" =~ -alpha\. ]] && [[ ! "${RELEASE_TAG}" =~ -beta\. ]]; then
             git fetch origin goblins --depth=1
             git merge-base --is-ancestor "${tag_commit}" origin/goblins \
               || { echo "Release tags must point at commits on goblins"; exit 1; }
@@ -62,6 +88,8 @@ jobs:
             target: x86_64-unknown-linux-musl
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.tag-check.outputs.tag }}
 
       - name: Install Linux build dependencies
         if: ${{ runner.os == 'Linux' }}
@@ -240,6 +268,8 @@ jobs:
             target: x86_64-pc-windows-msvc
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.tag-check.outputs.tag }}
 
       - uses: dtolnay/rust-toolchain@a0b273b48ed29de4470960879e8381ff45632f26 # 1.93.0
         with:
@@ -304,6 +334,7 @@ jobs:
 
   release:
     needs:
+      - tag-check
       - build-unix
       - build-windows
     if: ${{ always() && needs.build-unix.result == 'success' && (needs.build-windows.result == 'success' || needs.build-windows.result == 'skipped') }}
@@ -313,11 +344,13 @@ jobs:
       actions: read
     outputs:
       version: ${{ steps.release_name.outputs.version }}
-      tag: ${{ github.ref_name }}
+      tag: ${{ needs.tag-check.outputs.tag }}
       should_publish_npm: ${{ steps.npm_publish_settings.outputs.should_publish }}
       npm_tag: ${{ steps.npm_publish_settings.outputs.npm_tag }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.tag-check.outputs.tag }}
 
       - name: Install release tooling
         shell: bash
@@ -329,7 +362,9 @@ jobs:
       - name: Define release name
         id: release_name
         shell: bash
-        run: echo "version=${GITHUB_REF_NAME#rust-v}" >> "$GITHUB_OUTPUT"
+        env:
+          RELEASE_TAG: ${{ needs.tag-check.outputs.tag }}
+        run: echo "version=${RELEASE_TAG#rust-v}" >> "$GITHUB_OUTPUT"
 
       - name: Determine npm publish settings
         id: npm_publish_settings
@@ -408,7 +443,7 @@ jobs:
         uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
         with:
           name: ${{ steps.release_name.outputs.version }}
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ needs.tag-check.outputs.tag }}
           body_path: ${{ steps.release_notes.outputs.path }}
           files: dist/**
           prerelease: ${{ contains(steps.release_name.outputs.version, '-') }}
