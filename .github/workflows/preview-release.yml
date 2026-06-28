@@ -17,14 +17,18 @@ on:
         default: "goblins"
         type: string
 
-# This workflow creates a git tag that triggers rust-release.yml.
-# The tag points at a temporary commit with the beta version bumped in
-# Cargo.toml, package.json, and Cargo.lock. No branch is polluted —
-# the commit lives only as the tag target.
+# This workflow creates a git tag with the beta version bumped in Cargo.toml,
+# package.json, and Cargo.lock, then triggers rust-release.yml via
+# workflow_dispatch to build and publish the preview.
+#
+# Tags pushed with GITHUB_TOKEN do not trigger downstream push events, so we
+# explicitly dispatch rust-release with the tag name.
 
 jobs:
   create-preview-tag:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.create_tag.outputs.tag }}
     permissions:
       contents: write
     steps:
@@ -58,11 +62,11 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version and create tag
+        id: create_tag
         shell: bash
         env:
           BASE_VERSION: ${{ inputs.base_version }}
           BETA_NUMBER: ${{ inputs.beta_number }}
-          BRANCH: ${{ inputs.branch }}
         run: |
           set -euo pipefail
           version="${BASE_VERSION}-beta.${BETA_NUMBER}"
@@ -106,4 +110,24 @@ jobs:
           git tag -a "${tag}" -m "Preview release ${version}"
           git push origin "${tag}"
           echo "Created and pushed tag ${tag}"
-          echo "The rust-release workflow will build and publish this preview automatically."
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+
+  trigger-release:
+    needs: create-preview-tag
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger rust-release workflow
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.create-preview-tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          echo "Triggering rust-release for tag ${TAG}..."
+          gh workflow run rust-release.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref goblins \
+            -f tag="${TAG}"
+          echo "rust-release triggered. Monitor it in the Actions tab."
