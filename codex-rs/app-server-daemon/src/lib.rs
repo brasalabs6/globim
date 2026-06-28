@@ -263,13 +263,26 @@ impl Daemon {
             .as_path()
             .to_path_buf();
         let state_dir = codex_home.as_path().join(STATE_DIR_NAME);
+
+        // Resolve the Codex binary that the daemon will spawn.
+        // Prefer the managed standalone install (install.sh) when present.
+        // Fall back to the currently executing binary so that npm-installed
+        // distributions (e.g. @brasalabs/goblins) work without install.sh.
+        let managed_path = managed_codex_bin(codex_home.as_path());
+        let resolved_bin = if managed_path.is_file() {
+            managed_path
+        } else {
+            std::env::current_exe()
+                .context("failed to resolve current executable path for daemon backend")?
+        };
+
         Ok(Self {
             socket_path,
             pid_file: state_dir.join(PID_FILE_NAME),
             update_pid_file: state_dir.join(UPDATE_PID_FILE_NAME),
             operation_lock_file: state_dir.join(OPERATION_LOCK_FILE_NAME),
             settings_file: state_dir.join(SETTINGS_FILE_NAME),
-            managed_codex_bin: managed_codex_bin(codex_home.as_path()),
+            managed_codex_bin: resolved_bin,
         })
     }
 
@@ -666,13 +679,14 @@ impl Daemon {
             return Ok(());
         }
 
-        let managed_codex_path = self.managed_codex_bin.display();
+        let bin_path = self.managed_codex_bin.display();
         Err(anyhow!(
-            "managed standalone Codex install not found at {managed_codex_path}\n\n\
-             This command requires the standalone install managed by the Codex installer, because \
-             the daemon starts and updates app-server from that fixed path.\n\n\
-             Install it with:\n  curl -fsSL https://chatgpt.com/codex/install.sh | sh\n\n\
-             Then rerun the command you just tried."
+            "Codex binary not found at {bin_path}\n\n\
+             The daemon could not find a Codex binary to spawn. This usually means the \
+             managed standalone install is missing and the current executable path could \
+             not be resolved.\n\n\
+             If you installed via npm, ensure the @brasalabs/goblins package is correctly \
+             installed. If you use the standalone installer, run:\n  curl -fsSL https://chatgpt.com/codex/install.sh | sh"
         ))
     }
 

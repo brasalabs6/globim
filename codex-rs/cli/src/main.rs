@@ -147,6 +147,9 @@ enum Subcommand {
     /// [experimental] Run the app server or related tooling.
     AppServer(AppServerCommand),
 
+    /// Manage the background app-server daemon (shortcut for `app-server daemon`).
+    Daemon(AppServerDaemonCommand),
+
     /// [experimental] Manage the app-server daemon with remote control enabled.
     RemoteControl(RemoteControlCommand),
 
@@ -1097,6 +1100,44 @@ async fn cli_main(
                 }
             }
         }
+        Some(Subcommand::Daemon(daemon_cli)) => {
+            match daemon_cli.subcommand {
+                AppServerDaemonSubcommand::Start => {
+                    print_app_server_daemon_output(AppServerLifecycleCommand::Start).await?;
+                }
+                AppServerDaemonSubcommand::Bootstrap(bootstrap_cli) => {
+                    let output =
+                        codex_app_server_daemon::bootstrap(AppServerBootstrapOptions {
+                            remote_control_enabled: bootstrap_cli.remote_control,
+                        })
+                        .await?;
+                    println!("{}", serde_json::to_string(&output)?);
+                }
+                AppServerDaemonSubcommand::Restart => {
+                    print_app_server_daemon_output(AppServerLifecycleCommand::Restart).await?;
+                }
+                AppServerDaemonSubcommand::EnableRemoteControl => {
+                    print_app_server_remote_control_output(AppServerRemoteControlMode::Enabled)
+                        .await?;
+                }
+                AppServerDaemonSubcommand::DisableRemoteControl => {
+                    print_app_server_remote_control_output(
+                        AppServerRemoteControlMode::Disabled,
+                    )
+                    .await?;
+                }
+                AppServerDaemonSubcommand::Stop => {
+                    print_app_server_daemon_output(AppServerLifecycleCommand::Stop).await?;
+                }
+                AppServerDaemonSubcommand::Version => {
+                    print_app_server_daemon_output(AppServerLifecycleCommand::Version).await?;
+                }
+                AppServerDaemonSubcommand::PidUpdateLoop => {
+                    codex_app_server_daemon::run_pid_update_loop().await?;
+                }
+            }
+        }
+
         Some(Subcommand::AppServer(app_server_cli)) => {
             let AppServerCommand {
                 subcommand,
@@ -2134,6 +2175,7 @@ fn unsupported_subcommand_name_for_strict_config(
         Some(Subcommand::ResponsesApiProxy(_)) => Some("responses-api-proxy"),
         Some(Subcommand::StdioToUds(_)) => Some("stdio-to-uds"),
         Some(Subcommand::Features(_)) => Some("features"),
+        Some(Subcommand::Daemon(_)) => Some("daemon"),
     }
 }
 
