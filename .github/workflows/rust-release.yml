@@ -173,6 +173,19 @@ jobs:
         shell: bash
         run: cargo build --target ${{ matrix.target }} --release --timings --bin codex
 
+      - name: Strip debug symbols
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="target/${{ matrix.target }}/release/codex"
+          strip_tool="$(rustc --print sysroot)/lib/rustlib/$(rustc -vV | sed -n 's/^host: //p')/bin/llvm-strip"
+          if [[ ! -x "${strip_tool}" ]]; then
+            strip_tool="strip"
+          fi
+          echo "Stripping ${bin} with ${strip_tool}"
+          "${strip_tool}" --strip-all "${bin}" || "${strip_tool}" -s "${bin}"
+
       - name: Stage artifact
         shell: bash
         run: |
