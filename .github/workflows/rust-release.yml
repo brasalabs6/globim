@@ -33,10 +33,18 @@ jobs:
           [[ "${tag_ver}" == "${npm_ver}" ]] \
             || { echo "Tag ${tag_ver} does not match codex-cli/package.json ${npm_ver}"; exit 1; }
 
-          git fetch origin goblins --depth=1
           tag_commit="$(git rev-parse "${GITHUB_REF_NAME}^{commit}")"
-          git merge-base --is-ancestor "${tag_commit}" origin/goblins \
-            || { echo "Release tags must point at commits on goblins"; exit 1; }
+
+          # For stable releases (no -alpha/-beta suffix), the tag must point
+          # at a commit on the goblins branch. Preview releases (-alpha/-beta)
+          # may point at commits on any branch (e.g. a feature branch PR).
+          if [[ ! "${GITHUB_REF_NAME}" =~ -alpha\. ]] && [[ ! "${GITHUB_REF_NAME}" =~ -beta\. ]]; then
+            git fetch origin goblins --depth=1
+            git merge-base --is-ancestor "${tag_commit}" origin/goblins \
+              || { echo "Release tags must point at commits on goblins"; exit 1; }
+          else
+            echo "Preview release — skipping goblins ancestor check"
+          fi
 
   build-unix:
     needs: tag-check
@@ -336,6 +344,9 @@ jobs:
           elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
             echo "npm_tag=alpha" >> "$GITHUB_OUTPUT"
+          elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=beta" >> "$GITHUB_OUTPUT"
           else
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
             echo "npm_tag=" >> "$GITHUB_OUTPUT"
@@ -429,6 +440,9 @@ jobs:
           elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]]; then
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
             echo "npm_tag=alpha" >> "$GITHUB_OUTPUT"
+          elif [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "npm_tag=beta" >> "$GITHUB_OUTPUT"
           else
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
             echo "npm_tag=" >> "$GITHUB_OUTPUT"

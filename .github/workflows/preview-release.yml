@@ -1,0 +1,109 @@
+name: preview-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: "Base version (e.g. 0.142.3)"
+        required: true
+        type: string
+      beta_number:
+        description: "Beta number (e.g. 1 for 0.142.3-beta.1)"
+        required: true
+        type: string
+      branch:
+        description: "Branch to build from (default: goblins)"
+        required: false
+        default: "goblins"
+        type: string
+
+# This workflow creates a git tag that triggers rust-release.yml.
+# The tag points at a temporary commit with the beta version bumped in
+# Cargo.toml, package.json, and Cargo.lock. No branch is polluted —
+# the commit lives only as the tag target.
+
+jobs:
+  create-preview-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Validate inputs
+        shell: bash
+        env:
+          BASE_VERSION: ${{ inputs.base_version }}
+          BETA_NUMBER: ${{ inputs.beta_number }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${BASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid base version: ${BASE_VERSION}"
+            exit 1
+          fi
+          if [[ ! "${BETA_NUMBER}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid beta number: ${BETA_NUMBER}"
+            exit 1
+          fi
+
+      - name: Checkout target branch
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and create tag
+        shell: bash
+        env:
+          BASE_VERSION: ${{ inputs.base_version }}
+          BETA_NUMBER: ${{ inputs.beta_number }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          set -euo pipefail
+          version="${BASE_VERSION}-beta.${BETA_NUMBER}"
+          tag="rust-v${version}"
+
+          if git rev-parse "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "::error::Tag ${tag} already exists. Use a different beta number."
+            exit 1
+          fi
+
+          echo "Bumping version to ${version}..."
+
+          # Capture the current workspace version so we only rewrite the
+          # lockfile entries that belong to workspace members (all share the
+          # same version), not third-party crates that happen to match.
+          current_version="$(grep -m1 '^version' codex-rs/Cargo.toml | sed -E 's/version *= *"([^"]+)".*/\1/')"
+          echo "Current workspace version: ${current_version}"
+
+          # Update workspace version in Cargo.toml.
+          sed -i "s/^version = \"${current_version}\"/version = \"${version}\"/" codex-rs/Cargo.toml
+
+          # Update version in package.json.
+          sed -i "s/\"version\": \"${current_version}\"/\"version\": \"${version}\"/" codex-cli/package.json
+
+          # Update every workspace-member entry in Cargo.lock. All workspace
+          # members share the workspace version, so replacing every occurrence
+          # of the old version string with the new one is correct here.
+          sed -i "s/version = \"${current_version}\"/version = \"${version}\"/g" codex-rs/Cargo.lock
+
+          # Sanity check: the new version must now appear in all three files.
+          grep -q "version = \"${version}\"" codex-rs/Cargo.toml \
+            || { echo "::error::Cargo.toml version not updated"; exit 1; }
+          grep -q "\"version\": \"${version}\"" codex-cli/package.json \
+            || { echo "::error::package.json version not updated"; exit 1; }
+          grep -q "version = \"${version}\"" codex-rs/Cargo.lock \
+            || { echo "::error::Cargo.lock version not updated"; exit 1; }
+
+          git add codex-rs/Cargo.toml codex-cli/package.json codex-rs/Cargo.lock
+          git commit -m "chore: bump version to ${version} for preview release"
+
+          git tag -a "${tag}" -m "Preview release ${version}"
+          git push origin "${tag}"
+          echo "Created and pushed tag ${tag}"
+          echo "The rust-release workflow will build and publish this preview automatically."
