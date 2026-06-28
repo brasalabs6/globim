@@ -432,10 +432,14 @@ jobs:
       - name: Generate release notes
         id: release_notes
         shell: bash
+        env:
+          RELEASE_TAG: ${{ needs.tag-check.outputs.tag }}
         run: |
           set -euo pipefail
           notes_path="${RUNNER_TEMP}/release-notes.md"
-          git log -1 --format=%B "${GITHUB_SHA}^{commit}" > "$notes_path"
+          # Use the tagged commit, not GITHUB_SHA (which is the branch HEAD
+          # on workflow_dispatch, not present in the checked-out tree).
+          git log -1 --format=%B "${RELEASE_TAG}^{commit}" > "$notes_path"
           echo >> "$notes_path"
           echo "path=$notes_path" >> "$GITHUB_OUTPUT"
 
