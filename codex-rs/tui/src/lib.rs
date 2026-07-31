@@ -409,6 +409,44 @@ async fn connect_remote_app_server(
 }
 
 #[cfg(unix)]
+/// Whether daemon auto-start is enabled.
+///
+/// Controlled by the `GOBLINS_DAEMON_AUTO_START` environment variable.
+/// Defaults to `"1"` (enabled). Set to `"0"` or `"false"` to disable.
+fn daemon_auto_start_enabled() -> bool {
+    match std::env::var("GOBLINS_DAEMON_AUTO_START") {
+        Ok(val) => !val.eq_ignore_ascii_case("0") && !val.eq_ignore_ascii_case("false"),
+        Err(_) => true,
+    }
+}
+
+/// Attempt to start the daemon in the background and then probe the socket.
+///
+/// Returns `Some(socket_path)` if the daemon started successfully and the
+/// socket is accepting connections, or `None` if the start failed or timed
+/// out (in which case the caller falls back to embedded mode).
+async fn maybe_auto_start_daemon(codex_home: &Path) -> Option<AbsolutePathBuf> {
+    tracing::info!("no daemon socket found; attempting to auto-start daemon");
+
+    match codex_app_server_daemon::run(codex_app_server_daemon::LifecycleCommand::Start).await {
+        Ok(output) => {
+            tracing::info!(
+                status = ?output.status,
+                socket = %output.socket_path.display(),
+                "daemon auto-start completed"
+            );
+        }
+        Err(err) => {
+            tracing::warn!(%err, "daemon auto-start failed; falling back to embedded mode");
+            return None;
+        }
+    }
+
+    // The daemon start command waits until the socket is ready, but re-probe
+    // to confirm we can actually connect.
+    maybe_probe_default_daemon_socket(codex_home).await
+}
+
 async fn maybe_probe_default_daemon_socket(codex_home: &Path) -> Option<AbsolutePathBuf> {
     let socket_path = codex_app_server_client::app_server_control_socket_path(codex_home).ok()?;
     if !socket_path.as_path().try_exists().unwrap_or(false) {
@@ -911,6 +949,21 @@ pub async fn run_main(
     } else {
         None
     };
+
+    // Auto-start: if no daemon socket was found, no explicit remote endpoint
+    // was given, the user did not pass --no-daemon, and auto-start is not
+    // disabled via env var, attempt to spawn the daemon in the background.
+    let default_daemon = if default_daemon.is_none()
+        && explicit_remote_endpoint.is_none()
+        && reuse_implicit_local_daemon
+        && !cli.no_daemon
+        && daemon_auto_start_enabled()
+    {
+        maybe_auto_start_daemon(&codex_home).await
+    } else {
+        default_daemon
+    };
+
     let app_server_target = app_server_target_for_launch(
         explicit_remote_endpoint,
         default_daemon,

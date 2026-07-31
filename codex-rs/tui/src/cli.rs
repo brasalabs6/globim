@@ -71,6 +71,14 @@ pub struct Cli {
     #[arg(long = "no-alt-screen", default_value_t = false)]
     pub no_alt_screen: bool,
 
+    /// Disable daemon mode and force an embedded app-server.
+    ///
+    /// When set, the TUI will not connect to or auto-start a background daemon,
+    /// even if one is already running. This is equivalent to the pre-daemon behavior
+    /// where each terminal window gets its own isolated app-server.
+    #[arg(long = "no-daemon", default_value_t = false)]
+    pub no_daemon: bool,
+
     #[clap(skip)]
     pub config_overrides: CliConfigOverrides,
 }
